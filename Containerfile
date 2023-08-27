@@ -1,4 +1,9 @@
 ### 1. BUILD ARGS
+## These enable the produced image to be different by passing different build args.
+## They are provided on the commandline when building in a terminal, but the github
+## workflow provides them when building in Github Actions. Changes to the workflow
+## build.xml will override changes here.
+
 ## IMAGE_NAME arg can be anything from ublue upstream: silverblue, kinoite, sericea, vauxite, mate, lxqt, base
 ARG IMAGE_NAME="silverblue"
 ## IMAGE_SUFFIX arg should be "main", nvidia users should use "nvidia"
