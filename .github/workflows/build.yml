@@ -89,7 +89,7 @@ jobs:
       - name: Get current version
         id: labels
         run: |
-          ver=$(skopeo inspect docker://ghcr.io/ublue-os/${{ env.ARG_SOURCE_IMAGE }}-${{ env.ARG_SOURCE_SUFFIX }}:${{ env.FEDORA_VERSION}} | jq -r '.Labels["org.opencontainers.image.version"]')
+          ver=$(skopeo inspect docker://ghcr.io/ublue-os/${{ env.ARG_SOURCE_IMAGE }}-${{ env.ARG_SOURCE_SUFFIX }}:${{ env.ARG_FEDORA_VERSION }}${{ env.ARG_NVIDIA_VERSION }} | jq -r '.Labels["org.opencontainers.image.version"]')
           echo "VERSION=$ver" >> $GITHUB_OUTPUT
 
       # Build metadata
