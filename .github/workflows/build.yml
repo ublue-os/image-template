@@ -14,16 +14,15 @@ on:
   workflow_dispatch:
 
 # The env variables starting with "ARG_" are described in the Containerfile of this repo.
-# Look there for options and explanations for their usage.
 # The values here are defaults and should be modified if using a different image, needing
 # nvidia, a specific nvidia driver, or a different Fedora version.
 env:
-  ARG_SOURCE_IMAGE: "silverblue"
-  ARG_SOURCE_SUFFIX: "main"
-  ARG_FEDORA_VERSION: "38"
-  ARG_NVIDIA_VERSION: ""
-  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
-  MY_IMAGE_NAME: "customzed-ublue"
+  MY_IMAGE_NAME: "custom-silverblue"  # the name of the image produced by this build
+  ARG_SOURCE_IMAGE: "silverblue"  # see Containerfile for list of possible upstream images
+  ARG_SOURCE_SUFFIX: "main"  # see Containerfile
+  ARG_FEDORA_VERSION: "38"  # see Containerfile
+  ARG_NVIDIA_VERSION: ""  # see Containerfile
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
 
 jobs:
   push-ghcr:
@@ -102,7 +101,7 @@ jobs:
             ${{ env.MY_IMAGE_NAME }}
 
           labels: |
-            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.repository_name }}/main/README.md
+            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.repository }}/main/README.md
             org.opencontainers.image.description=Customized ${{ env.ARG_SOURCE_IMAGE }}-${{ env.ARG_SOURCE_SUFFIX }} image.
             org.opencontainers.image.title=${{ env.MY_IMAGE_NAME }}
             org.opencontainers.image.version=${{ steps.labels.outputs.VERSION }}
