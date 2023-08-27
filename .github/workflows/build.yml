@@ -18,11 +18,12 @@ on:
 # The values here are defaults and should be modified if using a different image, needing
 # nvidia, a specific nvidia driver, or a different Fedora version.
 env:
-  ARG_IMAGE_NAME: "silverblue"
-  ARG_IMAGE_SUFFIX: "main"
-  ARG_FEDORA_MAJOR_VERSION: "38"
-  ARG_NVIDIA_MAJOR_VERSION: ""
-  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
+  ARG_SOURCE_IMAGE: "silverblue"
+  ARG_SOURCE_SUFFIX: "main"
+  ARG_FEDORA_VERSION: "38"
+  ARG_NVIDIA_VERSION: ""
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
+  MY_IMAGE_NAME: "customzed-ublue"
 
 jobs:
   push-ghcr:
@@ -45,7 +46,7 @@ jobs:
         run: |
           # Generate a timestamp for creating an image version history
           TIMESTAMP="$(date +%Y%m%d)"
-          VARIANT="${{ env.ARG_FEDORA_MAJOR_VERSION }}"
+          VARIANT="${{ env.ARG_FEDORA_VERSION }}"
 
           COMMIT_TAGS=()
           BUILD_TAGS=()
@@ -89,7 +90,7 @@ jobs:
       - name: Get current version
         id: labels
         run: |
-          ver=$(skopeo inspect docker://ghcr.io/ublue-os/${{ env.ARG_IMAGE_NAME }}-${{ env.ARG_IMAGE_SUFFIX }}:${{ env.FEDORA_MAJOR_VERSION}}${{ env.NVIDIA_MAJOR_VERSION}} | jq -r '.Labels["org.opencontainers.image.version"]')
+          ver=$(skopeo inspect docker://ghcr.io/ublue-os/${{ env.ARG_SOURCE_IMAGE }}-${{ env.ARG_SOURCE_SUFFIX }}:${{ env.FEDORA_VERSION}}${{ env.NVIDIA_VERSION}} | jq -r '.Labels["org.opencontainers.image.version"]')
           echo "VERSION=$ver" >> $GITHUB_OUTPUT
 
       # Build metadata
@@ -98,12 +99,12 @@ jobs:
         id: meta
         with:
           images: |
-            ${{ env.ARG_IMAGE_NAME }}-${{ env.ARG_IMAGE_SUFFIX }}-custom
+            ${{ env.MY_IMAGE_NAME }}
 
           labels: |
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ github.repository_name }}/main/README.md
-            org.opencontainers.image.description=Customized ${{ env.ARG_IMAGE_NAME }}-${{ env.ARG_IMAGE_SUFFIX }} image.
-            org.opencontainers.image.title=${{ env.ARG_IMAGE_NAME }}-${{ env.ARG_IMAGE_SUFFIX }}
+            org.opencontainers.image.description=Customized ${{ env.ARG_SOURCE_IMAGE }}-${{ env.ARG_SOURCE_SUFFIX }} image.
+            org.opencontainers.image.title=${{ env.MY_IMAGE_NAME }}
             org.opencontainers.image.version=${{ steps.labels.outputs.VERSION }}
 
       # Build image using Buildah action
@@ -115,14 +116,14 @@ jobs:
             ./Containerfile
           # Postfix image name with -custom to make it a little more descriptive
           # Syntax: https://docs.github.com/en/actions/learn-github-actions/expressions#format
-          image: ${{ env.ARG_IMAGE_NAME }}-${{ env.ARG_IMAGE_SUFFIX }}-custom
+          image: ${{ env.MY_IMAGE_NAME }}
           tags: |
             ${{ steps.generate-tags.outputs.alias_tags }}
           build-args: |
-            IMAGE_NAME=${{ env.ARG_IMAGE_NAME }}
-            IMAGE_SUFFIX=${{ env.ARG_IMAGE_SUFFIX }}
-            FEDORA_MAJOR_VERSION=${{ env.ARG_FEDORA_MAJOR_VERSION }}
-            NVIDIA_MAJOR_VERSION=${{ env.ARG_NVIDIA_MAJOR_VERSION }}
+            SOURCE_IMAGE=${{ env.ARG_SOURCE_IMAGE }}
+            SOURCE_SUFFIX=${{ env.ARG_SOURCE_SUFFIX }}
+            FEDORA_VERSION=${{ env.ARG_FEDORA_VERSION }}
+            NVIDIA_VERSION=${{ env.ARG_NVIDIA_VERSION }}
           labels: ${{ steps.meta.outputs.labels }}
           oci: false
 
