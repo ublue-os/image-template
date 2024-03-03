@@ -20,7 +20,7 @@ env:
   MY_IMAGE_NAME: "custom-silverblue"  # the name of the image produced by this build
   ARG_SOURCE_IMAGE: "silverblue"  # see Containerfile for list of possible upstream images
   ARG_SOURCE_SUFFIX: "main"  # see Containerfile
-  ARG_FEDORA_VERSION: "38"  # see Containerfile
+  ARG_FEDORA_VERSION: "39"  # see Containerfile
   ARG_NVIDIA_VERSION: ""  # see Containerfile
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
 
@@ -156,3 +156,22 @@ jobs:
           password: ${{ env.REGISTRY_PASSWORD }}
           extra-args: |
             --disable-content-trust
+
+      # This section is optional and only needs to be enabled in you plan on distributing
+      # your project to others to consume. You will need to create a public and private key
+      # using Cosign and save the private key as a repository secret in Github for this workflow
+      # to consume. For more details, review the image signing section of the README.
+
+      # Sign container
+
+      #- uses: sigstore/cosign-installer@v3.4.0
+      #  if: github.event_name != 'pull_request'
+
+      #- name: Sign container image
+      #  if: github.event_name != 'pull_request'
+      #  run: |
+      #    cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ steps.registry_case.outputs.lowercase }}/${{ steps.build_image.outputs.image }}@${TAGS}
+      #  env:
+      #    TAGS: ${{ steps.push.outputs.digest }}
+      #    COSIGN_EXPERIMENTAL: false
+      #    COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
