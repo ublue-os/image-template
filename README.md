@@ -30,7 +30,7 @@ Working knowledge in the following topics:
 
 ## Template
 
-Select `Use this Template` and create a new repository from it. To enable the workflows, you will need to go the `Actions` tab of the new repository and click to enable workflows.
+Select `Use this Template` and create a new repository from it. To enable the workflows, you may need to go the `Actions` tab of the new repository and click to enable workflows.
 
 ## Containerfile
 
