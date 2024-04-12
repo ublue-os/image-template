@@ -13,21 +13,15 @@ on:
       - '**/README.md'
   workflow_dispatch:
 
-# The env variables starting with "ARG_" are described in the Containerfile of this repo.
-# The values here are defaults and should be modified if using a different image, needing
-# nvidia, a specific nvidia driver, or a different Fedora version.
 env:
-  MY_IMAGE_NAME: "custom-silverblue"  # the name of the image produced by this build
-  ARG_SOURCE_IMAGE: "silverblue"  # see Containerfile for list of possible upstream images
-  ARG_SOURCE_SUFFIX: "main"  # see Containerfile
-  ARG_FEDORA_VERSION: "39"  # see Containerfile
-  ARG_NVIDIA_VERSION: ""  # see Containerfile
+  MY_IMAGE_NAME: "ublue-custom"  # the name of the image produced by this build
+  MY_IMAGE_DESC: "My Customized Universal Blue System Image"
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
 
 jobs:
-  push-ghcr:
+  build_push:
     name: Build and push image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -45,20 +39,13 @@ jobs:
         run: |
           # Generate a timestamp for creating an image version history
           TIMESTAMP="$(date +%Y%m%d)"
-          VARIANT="${{ env.ARG_FEDORA_VERSION }}"
-
           COMMIT_TAGS=()
           BUILD_TAGS=()
 
           # Have tags for tracking builds during pull request
           SHA_SHORT="${GITHUB_SHA::7}"
-          COMMIT_TAGS+=("pr-${{ github.event.number }}-${VARIANT}")
-          COMMIT_TAGS+=("${SHA_SHORT}-${VARIANT}")
-
           COMMIT_TAGS+=("pr-${{ github.event.number }}")
           COMMIT_TAGS+=("${SHA_SHORT}")
-
-          BUILD_TAGS=("${VARIANT}")
 
           # Append matching timestamp tags to keep a version history
           for TAG in "${BUILD_TAGS[@]}"; do
@@ -86,12 +73,6 @@ jobs:
 
           echo "alias_tags=${alias_tags[*]}" >> $GITHUB_OUTPUT
 
-      - name: Get current version
-        id: labels
-        run: |
-          ver=$(skopeo inspect docker://ghcr.io/ublue-os/${{ env.ARG_SOURCE_IMAGE }}-${{ env.ARG_SOURCE_SUFFIX }}:${{ env.ARG_FEDORA_VERSION }}${{ env.ARG_NVIDIA_VERSION }} | jq -r '.Labels["org.opencontainers.image.version"]')
-          echo "VERSION=$ver" >> $GITHUB_OUTPUT
-
       # Build metadata
       - name: Image Metadata
         uses: docker/metadata-action@v4
@@ -102,9 +83,8 @@ jobs:
 
           labels: |
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository }}/main/README.md
-            org.opencontainers.image.description=Customized ${{ env.ARG_SOURCE_IMAGE }}-${{ env.ARG_SOURCE_SUFFIX }}
+            org.opencontainers.image.description=${{ env.MY_IMAGE_DESC }}
             org.opencontainers.image.title=${{ env.MY_IMAGE_NAME }}
-            org.opencontainers.image.version=${{ steps.labels.outputs.VERSION }}
 
       # Build image using Buildah action
       - name: Build Image
@@ -118,11 +98,6 @@ jobs:
           image: ${{ env.MY_IMAGE_NAME }}
           tags: |
             ${{ steps.generate-tags.outputs.alias_tags }}
-          build-args: |
-            SOURCE_IMAGE=${{ env.ARG_SOURCE_IMAGE }}
-            SOURCE_SUFFIX=${{ env.ARG_SOURCE_SUFFIX }}
-            FEDORA_VERSION=${{ env.ARG_FEDORA_VERSION }}
-            NVIDIA_VERSION=${{ env.ARG_NVIDIA_VERSION }}
           labels: ${{ steps.meta.outputs.labels }}
           oci: false
 
@@ -141,8 +116,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Push the image to GHCR (Image Registry)
-      - name: Push To GHCR
+      - name: Push Image to GHCR
         uses: redhat-actions/push-to-registry@v2
         id: push
         env:
@@ -170,7 +144,8 @@ jobs:
       #- name: Sign container image
       #  if: github.event_name != 'pull_request'
       #  run: |
-      #    cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ steps.registry_case.outputs.lowercase }}/${{ steps.build_image.outputs.image }}@${TAGS}
+      #    cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ steps.registry_case.outputs.lowercase }}/$
+{{ steps.build_image.outputs.image }}@${TAGS}
       #  env:
       #    TAGS: ${{ steps.push.outputs.digest }}
       #    COSIGN_EXPERIMENTAL: false
