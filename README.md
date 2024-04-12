@@ -2,7 +2,7 @@
 
 # Purpose
 
-This repository is meant to be used as a template to build your own custom Universal Blue Image. This base template is what the Universal Blue Project uses for all of our new and existing downstream projects (Bazzite, Bluefin, and Ucore). Each project has edited from this template to suit their own individual needs for more advanced build requirements. This template includes a Containerfile and 2 Github workflows (one for building the container and one for building an installation ISO from the container file) that will work immediately out of the box as soon as you enable the workflow in your repository.
+This repository is meant to be used as a template to build your own custom Universal Blue Image. This example base template is what the Universal Blue Project uses for all of our new and existing downstream projects (Bazzite, Bluefin, and Ucore). This template includes a Containerfile and 2 Github workflows (one for building the container and one for building an installation ISO from the container file) that will work immediately out of the box as soon as you enable the workflow in your repository.
 
 # Prerequisites
 
@@ -33,4 +33,11 @@ Since this is a template repository, you can select `Use this Template` and crea
 This is the main file used to customize the base image you are using. There are several examples of how to add layered rpm-ostree packages
 
 ## Workflows
-The `build.yml` workflow creates your OCI container
+
+### build.yml
+
+This workflow creates your custom OCI container and publishes it to Github Container Registry.
+
+### build_iso.yml
+
+This workflow creates an ISO and uploads it as a Github Artifact. (For examples on how to upload to a cloud registry, feel free to review Bazzite or Bluefin's workflow for uploading to R2.)
