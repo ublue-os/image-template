@@ -1,4 +1,4 @@
-# ublue-custom-template
+# image-template
 
 # Purpose
 
