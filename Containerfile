@@ -48,7 +48,8 @@ FROM ghcr.io/ublue-os/${SOURCE_IMAGE}${SOURCE_SUFFIX}:${FEDORA_VERSION}
 ## This section is meant for any modifications to the image before the main modifications are made.
 
 ## this directory is needed to prevent failure with some RPM installs
-RUN mkdir -p /var/lib/alternatives
+RUN mkdir -p /var/lib/alternatives && \
+    ostree container commit
 
 
 ### 4. MODIFICATIONS
@@ -60,7 +61,8 @@ RUN mkdir -p /var/lib/alternatives
 # RPMfusion packages are available by default in ublue main images
 # List of rpmfusion packages can be found here:
 # https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/39/x86_64/repoview/index.html&protocol=https&redirect=1
-RUN rpm-ostree install screen
+RUN rpm-ostree install screen && \
+    ostree container commit
 # example package from rpmfusion
 #RUN rpm-ostree install vlc
 
@@ -74,12 +76,7 @@ COPY --from=cgr.dev/chainguard/kubectl:latest /usr/bin/kubectl /usr/bin/kubectl
 
 # modify default timeouts on system to prevent slow reboots from services that won't stop
 RUN sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/user.conf && \
-  sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/system.conf
+    sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/system.conf && \
+    ostree container commit
 
-
-### 5. POST-MODIFICATIONS
-## these commands leave the image in a clean state after local modifications
-RUN rm -rf /tmp/* /var/* && \
-  ostree container commit && \
-  mkdir -p /tmp /var/tmp && \
-  chmod 1777 /tmp /var/tmp
+# NOTE: All RUN commands must end with ostree container commit, see: https://coreos.github.io/rpm-ostree/container/#using-ostree-container-commit
