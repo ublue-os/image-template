@@ -43,26 +43,17 @@ ARG FEDORA_VERSION="39"
 ## this is a standard Containerfile FROM using the build ARGs above to select the right upstream image
 FROM ghcr.io/ublue-os/${SOURCE_IMAGE}${SOURCE_SUFFIX}:${FEDORA_VERSION}
 
-#### Installation of static binaries
-
-# static binaries can sometimes by added using a COPY directive like these below. 
-COPY --from=cgr.dev/chainguard/kubectl:latest /usr/bin/kubectl /usr/bin/kubectl
-#COPY --from=docker.io/docker/compose-bin:latest /docker-compose /usr/bin/docker-compose
 
 ### 3. MODIFICATIONS
-## make modifications desired in your image and install packages here, a few examples follow
+## make modifications desired in your image and install packages by modifying the build.sh script
+## the following RUN directive does all the things required to run "build.sh" as recommended.
 
-#### Install packages, Change System Configuration Files
+COPY build.sh /tmp/build.sh
 
-# install a package from standard fedora repo or rpmfusion repo
-# RPMfusion packages are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/39/x86_64/repoview/index.html&protocol=https&redirect=1
-# modify default timeouts on system to prevent slow reboots from services that won't stop
 RUN mkdir -p /var/lib/alternatives && \
-    rpm-ostree install screen && \
-    sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/user.conf && \
-    sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/system.conf && \
+    /tmp/build.sh && \
     ostree container commit
-
-# NOTE: All RUN commands must end with ostree container commit, see: https://coreos.github.io/rpm-ostree/container/#using-ostree-container-commit
+## NOTES:
+# - /var/lib/alternatives is required to prevent failure with some RPM installs
+# - All RUN commands must end with ostree container commit
+#   see: https://coreos.github.io/rpm-ostree/container/#using-ostree-container-commit
