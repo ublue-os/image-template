@@ -44,42 +44,16 @@ ARG FEDORA_VERSION="39"
 FROM ghcr.io/ublue-os/${SOURCE_IMAGE}${SOURCE_SUFFIX}:${FEDORA_VERSION}
 
 
-### 3. PRE-MODIFICATIONS
-## This section is meant for any modifications to the image before the main modifications are made.
+### 3. MODIFICATIONS
+## make modifications desired in your image and install packages by modifying the build.sh script
+## the following RUN directive does all the things required to run "build.sh" as recommended.
 
-## this directory is needed to prevent failure with some RPM installs
-RUN mkdir -p /var/lib/alternatives
+COPY build.sh /tmp/build.sh
 
-
-### 4. MODIFICATIONS
-## make modifications desired in your image and install packages here, a few examples follow
-
-#### Install packages
-
-# install a package from standard fedora repo or rpmfusion repo
-# RPMfusion packages are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/39/x86_64/repoview/index.html&protocol=https&redirect=1
-RUN rpm-ostree install screen
-# example package from rpmfusion
-#RUN rpm-ostree install vlc
-
-#### Installation of static binaries
-
-# static binaries can sometimes by added using a COPY directive like these below. 
-COPY --from=cgr.dev/chainguard/kubectl:latest /usr/bin/kubectl /usr/bin/kubectl
-#COPY --from=docker.io/docker/compose-bin:latest /docker-compose /usr/bin/docker-compose
-
-#### Change to System Configuration Files
-
-# modify default timeouts on system to prevent slow reboots from services that won't stop
-RUN sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/user.conf && \
-  sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/system.conf
-
-
-### 5. POST-MODIFICATIONS
-## these commands leave the image in a clean state after local modifications
-RUN rm -rf /tmp/* /var/* && \
-  ostree container commit && \
-  mkdir -p /tmp /var/tmp && \
-  chmod 1777 /tmp /var/tmp
+RUN mkdir -p /var/lib/alternatives && \
+    /tmp/build.sh && \
+    ostree container commit
+## NOTES:
+# - /var/lib/alternatives is required to prevent failure with some RPM installs
+# - All RUN commands must end with ostree container commit
+#   see: https://coreos.github.io/rpm-ostree/container/#using-ostree-container-commit
