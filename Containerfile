@@ -43,39 +43,25 @@ ARG FEDORA_VERSION="39"
 ## this is a standard Containerfile FROM using the build ARGs above to select the right upstream image
 FROM ghcr.io/ublue-os/${SOURCE_IMAGE}${SOURCE_SUFFIX}:${FEDORA_VERSION}
 
-
-### 3. PRE-MODIFICATIONS
-## This section is meant for any modifications to the image before the main modifications are made.
-
-## this directory is needed to prevent failure with some RPM installs
-RUN mkdir -p /var/lib/alternatives && \
-    ostree container commit
-
-
-### 4. MODIFICATIONS
-## make modifications desired in your image and install packages here, a few examples follow
-
-#### Install packages
-
-# install a package from standard fedora repo or rpmfusion repo
-# RPMfusion packages are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/39/x86_64/repoview/index.html&protocol=https&redirect=1
-RUN rpm-ostree install screen && \
-    ostree container commit
-# example package from rpmfusion
-#RUN rpm-ostree install vlc
-
 #### Installation of static binaries
 
 # static binaries can sometimes by added using a COPY directive like these below. 
 COPY --from=cgr.dev/chainguard/kubectl:latest /usr/bin/kubectl /usr/bin/kubectl
 #COPY --from=docker.io/docker/compose-bin:latest /docker-compose /usr/bin/docker-compose
 
-#### Change to System Configuration Files
+### 3. MODIFICATIONS
+## make modifications desired in your image and install packages here, a few examples follow
 
+#### Install packages, Change System Configuration Files
+
+# install a package from standard fedora repo or rpmfusion repo
+# RPMfusion packages are available by default in ublue main images
+# List of rpmfusion packages can be found here:
+# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/39/x86_64/repoview/index.html&protocol=https&redirect=1
 # modify default timeouts on system to prevent slow reboots from services that won't stop
-RUN sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/user.conf && \
+RUN mkdir -p /var/lib/alternatives && \
+    rpm-ostree install screen && \
+    sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/user.conf && \
     sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/system.conf && \
     ostree container commit
 
