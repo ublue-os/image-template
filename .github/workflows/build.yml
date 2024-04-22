@@ -137,9 +137,10 @@ jobs:
       # to consume. For more details, review the image signing section of the README.
 
       # Sign container
+      - uses: sigstore/cosign-installer@v3.4.0
+        if: github.event_name != 'pull_request'
 
       - name: Sign container image
-        uses: sigstore/cosign-installer@v3.4.0
         if: github.event_name != 'pull_request'
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ steps.registry_case.outputs.lowercase }}/${{ steps.build_image.outputs.image }}@${TAGS}
