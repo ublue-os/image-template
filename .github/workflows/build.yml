@@ -137,7 +137,7 @@ jobs:
       # to consume. For more details, review the image signing section of the README.
 
       # Sign container
-      - uses: sigstore/cosign-installer@v3.4.0
+      - uses: sigstore/cosign-installer@v3.5.0
         if: github.event_name != 'pull_request'
 
       - name: Sign container image
