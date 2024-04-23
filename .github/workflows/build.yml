@@ -14,8 +14,8 @@ on:
   workflow_dispatch:
 
 env:
-  MY_IMAGE_NAME: "ublue-custom"  # the name of the image produced by this build
-  MY_IMAGE_DESC: "My Customized Universal Blue System Image"
+  MY_IMAGE_NAME: "${{ github.event.repository.name }}"  # the name of the image produced by this build, matches repo names
+  MY_IMAGE_DESC: "My Customized Universal Blue Image"
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
 
 jobs:
