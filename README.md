@@ -44,7 +44,7 @@ This file defines the operations used to customize the selected image. It contai
 
 ### build.yml
 
-This workflow creates your custom OCI image and publishes it to the Github Container Registry (GHCR).
+This workflow creates your custom OCI image and publishes it to the Github Container Registry (GHCR). By default, the image name will match the Github repository name.
 
 #### Container Signing
 
