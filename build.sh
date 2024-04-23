@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -ouex pipefail
 
@@ -18,10 +18,6 @@ rpm-ostree install screen
 # this would install a package from rpmfusion
 #RUN rpm-ostree install vlc
 
+#### Example for enabling a System Unit File
 
-
-#### Change to System Configuration Files
-
-# this example modifies default timeouts to prevent slow reboots from services that won't stop
-sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/user.conf
-sed -i 's/#DefaultTimeoutStopSec.*/DefaultTimeoutStopSec=15s/' /etc/systemd/system.conf
+systemctl enable podman.socket
