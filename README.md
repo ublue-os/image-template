@@ -38,7 +38,6 @@ This file defines the operations used to customize the selected image. It contai
 - change the upstream from which the custom image is derived
 - add additional RPM packages
 - add binaries as a layer from other images
-- modify system files (like /etc/systemd/system.conf)
 
 ## Workflows
 
