@@ -79,3 +79,7 @@ This provides users a method of verifying the image.
     ```
 
 4. Commit the `cosign.pub` file into your git repository
+
+### Examples
+[m2os](https://github.com/m2giles/m2os)
+[bos](https://github.com/bsherman/bos)
