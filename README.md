@@ -32,9 +32,9 @@ The top line is the base image you want to start FROM. Any valid image can be a 
 `FROM ghcr.io/ublue-os/bluefin:stable`
 `FROM ghcr.io/ublue-os/aurora-dx:stable`
 
-## "Emtpy base images"
+## "Empty" base images
 
-These contain a base system WITHOUT a prexisting desktop. This is recommended for 
+These contain a base system WITHOUT a pre-existing desktop. This is recommended for a more bottom up approach or if you want to to use a different desktop environment than is currently available:
 
 `FROM ghcr.io/ublue-os/base-main:latest`
 
