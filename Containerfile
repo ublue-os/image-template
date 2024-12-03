@@ -16,6 +16,7 @@ RUN dnf5 install vlc
 
 ## Add COPRs
 # RUN dnf copr enable (copr-author/name)
+# RUN dnf5 install thing-from-copr
 
 ## Manage services
 # systemctl enable foo.service
