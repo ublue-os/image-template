@@ -28,15 +28,15 @@ Select `Use this Template` and create a new repository from it. To enable the wo
 
 The top line is the base image you want to start FROM. Any valid image can be a starting point, examples include:
 
-`FROM ghcr.io/ublue-os/bazzite:latest`
-`FROM ghcr.io/ublue-os/bluefin:stable`
-`FROM ghcr.io/ublue-os/aurora-dx:stable`
+- `FROM ghcr.io/ublue-os/bazzite:latest`
+- `FROM ghcr.io/ublue-os/bluefin:stable`
+- `FROM ghcr.io/ublue-os/aurora-dx:stable`
 
 ## "Empty" base images
 
 These contain a base system WITHOUT a pre-existing desktop. This is recommended for a more bottom up approach or if you want to to use a different desktop environment than is currently available:
 
-`FROM ghcr.io/ublue-os/base-main:latest`
+- `FROM ghcr.io/ublue-os/base-main:latest`
 
 Use `base-nvidia:latest` if you need the Nvidia drivers. You can also lock to a specific version like `base-nvidia:41`, etc.
 
