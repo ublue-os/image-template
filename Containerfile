@@ -20,3 +20,6 @@ RUN dnf5 install vlc
 
 ## Manage services
 # systemctl enable foo.service
+
+## Final command
+RUN bootc container lint
