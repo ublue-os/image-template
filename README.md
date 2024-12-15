@@ -2,15 +2,7 @@
 
 # Purpose
 
-This repository is meant to be a template for building your own custom Universal Blue image. This template is the recommended way to make customizations to any image published by the Universal Blue Project:
-- [Aurora](https://getaurora.dev/)
-- [Bazzite](https://bazzite.gg/)
-- [Bluefin](https://projectbluefin.io/)
-- [uCore](https://projectucore.io/)
-- [main](https://github.com/ublue-os/main/)
-- [hwe](https://github.com/ublue-os/hwe/) 
-
-This template includes a Containerfile and a Github workflow for building the container image. As soon as the workflow is enabled in your repository, it will build the container image and push it to the Github Container Registry.
+This repository is meant to be a template for building your own custom Universal Blue image. 
 
 # Prerequisites
 
@@ -19,8 +11,8 @@ Working knowledge in the following topics:
 - Containers
   - https://www.youtube.com/watch?v=SnSH8Ht3MIc
   - https://www.mankier.com/5/Containerfile
-- rpm-ostree
-  - https://coreos.github.io/rpm-ostree/container/
+- bootc
+  - https://containers.github.io/bootc/
 - Fedora Silverblue (and other Fedora Atomic variants)
   - https://docs.fedoraproject.org/en-US/fedora-silverblue/
 - Github Workflows
@@ -34,10 +26,19 @@ Select `Use this Template` and create a new repository from it. To enable the wo
 
 ## Containerfile
 
-This file defines the operations used to customize the selected image. It contains examples of possible modifications, including how to:
-- change the upstream from which the custom image is derived
-- add additional RPM packages
-- add binaries as a layer from other images
+The top line is the base image you want to start FROM. Any valid image can be a starting point, examples include:
+
+- `FROM ghcr.io/ublue-os/bazzite:latest`
+- `FROM ghcr.io/ublue-os/bluefin:stable`
+- `FROM ghcr.io/ublue-os/aurora-dx:stable`
+
+## "Empty" base images
+
+These contain a base system WITHOUT a pre-existing desktop. This is recommended for a more bottom up approach or if you want to to use a different desktop environment than is currently available:
+
+- `FROM ghcr.io/ublue-os/base-main:latest`
+
+Use `base-nvidia:latest` if you need the Nvidia drivers. You can also lock to a specific version like `base-nvidia:41`, etc.
 
 ## Workflows
 
