@@ -78,7 +78,7 @@ This provides users a method of verifying the image.
     gh secret set SIGNING_SECRET < cosign.key
     ```
 
-4. Commit the `cosign.pub` file into your git repository
+4. Commit the `cosign.pub` file to the root of your git repository.
 
 ### Examples
 - [m2os](https://github.com/m2giles/m2os)
