@@ -13,6 +13,7 @@ Working knowledge in the following topics:
   - https://www.mankier.com/5/Containerfile
 - bootc
   - https://containers.github.io/bootc/
+  - https://docs.fedoraproject.org/en-US/bootc/
 - Fedora Silverblue (and other Fedora Atomic variants)
   - https://docs.fedoraproject.org/en-US/fedora-silverblue/
 - Github Workflows
