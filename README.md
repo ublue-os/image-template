@@ -19,8 +19,9 @@ Working knowledge in the following topics:
 - Containers
   - https://www.youtube.com/watch?v=SnSH8Ht3MIc
   - https://www.mankier.com/5/Containerfile
-- rpm-ostree
-  - https://coreos.github.io/rpm-ostree/container/
+- bootc
+  - https://containers.github.io/bootc/
+  - https://github.com/containers/bootc/discussions - Forum for bootc, this is probably the best place to ask questions!
 - Fedora Silverblue (and other Fedora Atomic variants)
   - https://docs.fedoraproject.org/en-US/fedora-silverblue/
 - Github Workflows
