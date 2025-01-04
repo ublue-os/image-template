@@ -12,6 +12,10 @@ This repository is meant to be a template for building your own custom Universal
 
 This template includes a Containerfile and a Github workflow for building the container image. As soon as the workflow is enabled in your repository, it will build the container image and push it to the Github Container Registry.
 
+# Community
+
+- [**bootc discussion forums**](https://github.com/containers/bootc/discussions) - Nothing in this template is ublue specific, the upstream bootc project has a discussions forum where custom image builders can hang out and ask questions.
+
 # Prerequisites
 
 Working knowledge in the following topics:
@@ -21,7 +25,6 @@ Working knowledge in the following topics:
   - https://www.mankier.com/5/Containerfile
 - bootc
   - https://containers.github.io/bootc/
-  - https://github.com/containers/bootc/discussions - Forum for bootc, this is probably the best place to ask questions!
 - Fedora Silverblue (and other Fedora Atomic variants)
   - https://docs.fedoraproject.org/en-US/fedora-silverblue/
 - Github Workflows
