@@ -12,11 +12,6 @@ This repository is meant to be a template for building your own custom Universal
 
 This template includes a Containerfile and a Github workflow for building the container image. As soon as the workflow is enabled in your repository, it will build the container image and push it to the Github Container Registry.
 
-# Community
-
-- [**bootc discussion forums**](https://github.com/containers/bootc/discussions) - Nothing in this template is ublue specific, the upstream bootc project has a discussions forum where custom image builders can hang out and ask questions.
-- Index your image on [artifacthub.io](https://artifacthub.io), use the `artifacthub-repo.yml` file at the root to verify yourself as the publisher. 
-
 # Prerequisites
 
 Working knowledge in the following topics:
@@ -85,7 +80,13 @@ This provides users a method of verifying the image.
 
 4. Commit the `cosign.pub` file to the root of your git repository.
 
-### Examples
+# Community
+
+- [**bootc discussion forums**](https://github.com/containers/bootc/discussions) - Nothing in this template is ublue specific, the upstream bootc project has a discussions forum where custom image builders can hang out and ask questions.
+- Index your image on [artifacthub.io](https://artifacthub.io), use the `artifacthub-repo.yml` file at the root to verify yourself as the publisher. 
+
+## Community Examples
+
 - [m2os](https://github.com/m2giles/m2os)
 - [bos](https://github.com/bsherman/bos)
 - [homer](https://github.com/bketelsen/homer/)
