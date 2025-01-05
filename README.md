@@ -16,6 +16,12 @@ This template includes a Containerfile and a Github workflow for building the co
 
 - [**bootc discussion forums**](https://github.com/containers/bootc/discussions) - Nothing in this template is ublue specific, the upstream bootc project has a discussions forum where custom image builders can hang out and ask questions.
 
+## ArtifactHub
+
+ArtifactHub is - PLACEHOLDER 
+
+- [**artifacthub universal blue index**](https://artifacthub.io/packages/search?ts_query_web=ublue&sort=relevance&page=1)
+
 # Prerequisites
 
 Working knowledge in the following topics:
