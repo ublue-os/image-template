@@ -39,6 +39,12 @@ This file defines the operations used to customize the selected image. It contai
 - add additional RPM packages
 - add binaries as a layer from other images
 
+## Building an ISO
+
+Modify `iso.toml` to point to your custom image before generating an ISO.
+
+- (Steps in progress)
+
 ## Workflows
 
 ### build.yml
