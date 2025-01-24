@@ -8,9 +8,15 @@ This repository is meant to be a template for building your own custom Universal
 - [Bluefin](https://projectbluefin.io/)
 - [uCore](https://projectucore.io/)
 - [main](https://github.com/ublue-os/main/)
-- [hwe](https://github.com/ublue-os/hwe/) 
+- [hwe](https://github.com/ublue-os/hwe/)
 
-This template includes a Containerfile and a Github workflow for building the container image. As soon as the workflow is enabled in your repository, it will build the container image and push it to the Github Container Registry.
+or any other base image:
+
+- CentOS Stream 9: `quay.io/centos-bootc/centos-bootc:stream9`
+- CentOS Stream 10 (in development): `quay.io/centos-bootc/centos-bootc:stream10`
+- Fedora: `quay.io/fedora/fedora-bootc:41`
+
+This template includes a Containerfile and a Github workflow for building the container image, signing, and proper metadata to be listed on [artifacthub](https://artifacthub.io/). As soon as the workflow is enabled in your repository, it will build the container image and push it to the Github Container Registry.
 
 # Prerequisites
 
