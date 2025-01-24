@@ -130,7 +130,6 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
       -v $(pwd)/output:/output \
       -v /var/lib/containers/storage:/var/lib/containers/storage \
       "${bib_image}" \
-      --use-librepo=True \
       --rootfs btrfs \
       ${args} \
       "${target_image}"
