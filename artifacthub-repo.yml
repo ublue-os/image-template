@@ -1,6 +1,6 @@
-# This file is completely optional, but if you want to index your image on https://artifacthub.io/ you can, by 
-# adding the Repository ID and your data there on `owners`. This makes it so we can all have a fancy index of all custom
-# images. If you dont want to be on that, dont worry, this should not do anything by itself
+# This file is completely optional, but if you want to index your image on https://artifacthub.io/ you can 
+# Sign up and add the Repository ID to the right field. Owners fields are optional.
+# Examples: https://artifacthub.io/packages/search?ts_query_web=ublue&sort=relevance&page=1 
 
 repositoryID: my-custom-id-here # Fill in with your own credentials 
 owners: # (optional, used to claim repository ownership)
