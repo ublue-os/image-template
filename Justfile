@@ -61,7 +61,7 @@ build $target_image=image_name $tag=default_tag:
     ver="${tag}-$(date +%Y%m%d)"
 
     BUILD_ARGS=()
-    BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${image_name}")
+    BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${target_image}")
     BUILD_ARGS+=("--build-arg" "IMAGE_VENDOR=${repo_organization}")
     if [[ -z "$(git status -s)" ]]; then
         BUILD_ARGS+=("--build-arg" "SHA_HEAD_SHORT=$(git rev-parse --short HEAD)")
@@ -70,7 +70,7 @@ build $target_image=image_name $tag=default_tag:
     ${PODMAN} build \
         "${BUILD_ARGS[@]}" \
         --pull=newer \
-        --tag "${image_name}:${tag}" \
+        --tag "${target_image}:${tag}" \
         .
 
 _rootful_load_image $target_image=image_name $tag=default_tag:
@@ -108,31 +108,31 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
 
     echo "Cleaning up previous build"
     if [[ $type == iso ]]; then
-      sudo rm -rf "output/bootiso" || true
+        sudo rm -rf "output/bootiso" || true
     else
-      sudo rm -rf "output/${type}" || true
+        sudo rm -rf "output/${type}" || true
     fi
 
     args="--type ${type}"
 
     if [[ $target_image == localhost/* ]]; then
-      args+=" --local"
+        args+=" --local"
     fi
 
     sudo ${PODMAN} run \
-      --rm \
-      -it \
-      --privileged \
-      --pull=newer \
-      --net=host \
-      --security-opt label=type:unconfined_t \
-      -v $(pwd)/${config}:/config.toml:ro \
-      -v $(pwd)/output:/output \
-      -v /var/lib/containers/storage:/var/lib/containers/storage \
-      "${bib_image}" \
-      --rootfs btrfs \
-      ${args} \
-      "${target_image}"
+        --rm \
+        -it \
+        --privileged \
+        --pull=newer \
+        --net=host \
+        --security-opt label=type:unconfined_t \
+        -v $(pwd)/${config}:/config.toml:ro \
+        -v $(pwd)/output:/output \
+        -v /var/lib/containers/storage:/var/lib/containers/storage \
+        "${bib_image}" \
+        --rootfs btrfs \
+        ${args} \
+        "${target_image}"
 
     sudo chown -R $USER:$USER output
 
