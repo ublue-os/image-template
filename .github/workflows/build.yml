@@ -56,7 +56,7 @@ jobs:
       # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
       # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
       - name: Image Metadata
-        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
         id: metadata
         with:
           # This generates all the tags for your image, you can add custom tags here too!
