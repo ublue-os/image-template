@@ -95,7 +95,16 @@ This provides users a method of verifying the image.
 # Community
 
 - [**bootc discussion forums**](https://github.com/containers/bootc/discussions) - Nothing in this template is ublue specific, the upstream bootc project has a discussions forum where custom image builders can hang out and ask questions.
-- Index your image on [artifacthub.io](https://artifacthub.io), use the `artifacthub-repo.yml` file at the root to verify yourself as the publisher. [Discussion thread](https://universal-blue.discourse.group/t/listing-your-custom-image-on-artifacthub/6446)
+
+## Artifacthub
+
+This template comes with the necessary tooling to index your image on [artifacthub.io](https://artifacthub.io), use the `artifacthub-repo.yml` file at the root to verify yourself as the publisher. This is important to you for a few reasons:
+
+- The value of artifacthub is it's one place for people to index their custom images, and since we depend on each other to learn, it helps grow the community. 
+- You get to see your pet project listed with the other cool projects in Cloud Native.
+- Since the site puts your README front and center, it's a good way to learn how to write a good README, learn some marketing, finding your audience, etc. 
+
+[Discussion thread](https://universal-blue.discourse.group/t/listing-your-custom-image-on-artifacthub/6446)
 
 ## Community Examples
 
