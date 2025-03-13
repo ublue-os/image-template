@@ -67,7 +67,7 @@ This workflow creates an ISO from your OCI image by utilizing the [bootc-image-b
   - `S3_PROVIDER` - Must match one of the values from the [supported list](https://rclone.org/s3/)
   - `S3_BUCKET_NAME` - Your unique bucket name
   - `S3_ACCESS_KEY_ID` - It is recommended that you make a separate key just for this workflow
-  - `S3_SECRET_ACCESS_KEY`
+  - `S3_SECRET_ACCESS_KEY` - See above.
   - `S3_REGION` - The region your bucket lives in. If you do not know then set this value to `auto`.
   - `S3_ENDPOINT` - This value will be specific to the bucket as well.
 
