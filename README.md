@@ -71,6 +71,8 @@ This workflow creates an ISO from your OCI image by utilizing the [bootc-image-b
   - `S3_REGION` - The region your bucket lives in. If you do not know then set this value to `auto`.
   - `S3_ENDPOINT` - This value will be specific to the bucket as well.
 
+Once the workflow is done, you'll find it either in your S3 bucket or as part of the summary under `Artifacts` after the workflow is completed.
+
 #### Container Signing
 
 Container signing is important for end-user security and is enabled on all Universal Blue images. It is recommended you set this up, and by default the image builds *will fail* if you don't.
