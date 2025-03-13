@@ -26,7 +26,7 @@ Working knowledge in the following topics:
   - https://www.youtube.com/watch?v=SnSH8Ht3MIc
   - https://www.mankier.com/5/Containerfile
 - bootc
-  - https://containers.github.io/bootc/
+  - https://bootc-dev.github.io/bootc/
 - Fedora Silverblue (and other Fedora Atomic variants)
   - https://docs.fedoraproject.org/en-US/fedora-silverblue/
 - Github Workflows
@@ -94,7 +94,7 @@ This provides users a method of verifying the image.
 
 # Community
 
-- [**bootc discussion forums**](https://github.com/containers/bootc/discussions) - Nothing in this template is ublue specific, the upstream bootc project has a discussions forum where custom image builders can hang out and ask questions.
+- [**bootc discussion forums**](https://github.com/bootc-dev/bootc/discussions) - Nothing in this template is ublue specific, the upstream bootc project has a discussions forum where custom image builders can hang out and ask questions.
 
 ## Artifacthub
 
