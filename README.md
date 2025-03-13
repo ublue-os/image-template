@@ -49,7 +49,7 @@ This file defines the operations used to customize the selected image. It contai
 
 This template provides an out of the box workflow for getting an ISO image for your custom OCI image which can be used to directly install onto your machines.
 
-Due to the large file size of ISOs and the limits of [GitHub's artifacts](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases#storage-and-bandwidth-quotas) this template provides a way to upload the ISO that is generated from the workflow to a S3 bucket. To upload to S3 we use a tool called [rclone](https://rclone.org/) which is able to use [many S3 providers](https://rclone.org/s3/). For more details on how to configure this see the details [below](#build-isoyml).
+This template provides a way to upload the ISO that is generated from the workflow to a S3 bucket or it will be available as an artifact from the job. To upload to S3 we use a tool called [rclone](https://rclone.org/) which is able to use [many S3 providers](https://rclone.org/s3/). For more details on how to configure this see the details [below](#build-isoyml).
 
 ## Workflows
 
@@ -63,7 +63,7 @@ This workflow creates an ISO from your OCI image by utilizing the [bootc-image-b
 
 - Modify `iso.toml` to point to your custom image before generating an ISO.
 - If you changed your image name from the default in `build.yml` then in the `build-iso.yml` file edit the `IMAGE_REGISTRY` and `DEFAULT_TAG` environment variables with the correct values. If you did not make changes, skip this step.
-- Finally, we will need to add our S3 configuration to our Action secrets. This can be found by going to your repository settings, under Secrets and Variables -> Actions. You will need to add the following
+- Finally, if you want to upload your ISOs to S3 then you will need to add your S3 configuration to the repository's Action secrets. This can be found by going to your repository settings, under `Secrets and Variables` -> `Actions`. You will need to add the following
   - `S3_PROVIDER` - Must match one of the values from the [supported list](https://rclone.org/s3/)
   - `S3_BUCKET_NAME` - Your unique bucket name
   - `S3_ACCESS_KEY_ID` - It is recommended that you make a separate key just for this workflow
@@ -93,7 +93,7 @@ This provides users a method of verifying the image.
 
 3. Add the private key to GitHub
 
-    - This can also be done manually. Go to your repository settings, under Secrets and Variables -> Actions
+    - This can also be done manually. Go to your repository settings, under `Secrets and Variables` -> `Actions`
     ![image](https://user-images.githubusercontent.com/1264109/216735595-0ecf1b66-b9ee-439e-87d7-c8cc43c2110a.png)
     Add a new secret and name it `SIGNING_SECRET`, then paste the contents of `cosign.key` into the secret and save it. Make sure it's the .key file and not the .pub file. Once done, it should look like this:
     ![image](https://user-images.githubusercontent.com/1264109/216735690-2d19271f-cee2-45ac-a039-23e6a4c16b34.png)
