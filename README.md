@@ -47,15 +47,29 @@ This file defines the operations used to customize the selected image. It contai
 
 ## Building an ISO
 
-Modify `iso.toml` to point to your custom image before generating an ISO.
+This template provides an out of the box workflow for getting an ISO image for your custom OCI image which can be used to directly install onto your machines.
 
-- (Steps in progress)
+Due to the large file size of ISOs and the limits of [GitHub's artifacts](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases#storage-and-bandwidth-quotas) this template provides a way to upload the ISO that is generated from the workflow to a S3 bucket. To upload to S3 we use a tool called [rclone](https://rclone.org/) which is able to use [many S3 providers](https://rclone.org/s3/). For more details on how to configure this see the details [below](#build-isoyml).
 
 ## Workflows
 
 ### build.yml
 
 This workflow creates your custom OCI image and publishes it to the Github Container Registry (GHCR). By default, the image name will match the Github repository name.
+
+### build-iso.yml
+
+This workflow creates an ISO from your OCI image by utilizing the [bootc-image-builder](https://osbuild.org/docs/bootc/) to generate an ISO. In order to use this workflow you must complete the following steps:
+
+- Modify `iso.toml` to point to your custom image before generating an ISO.
+- If you changed your image name from the default in `build.yml` then in the `build-iso.yml` file edit the `IMAGE_REGISTRY` and `DEFAULT_TAG` environment variables with the correct values. If you did not make changes, skip this step.
+- Finally, we will need to add our S3 configuration to our Action secrets. This can be found by going to your repository settings, under Secrets and Variables -> Actions. You will need to add the following
+  - `S3_PROVIDER` - Must match one of the values from the [supported list](https://rclone.org/s3/)
+  - `S3_BUCKET_NAME` - Your unique bucket name
+  - `S3_ACCESS_KEY_ID` - It is recommended that you make a separate key just for this workflow
+  - `S3_SECRET_ACCESS_KEY`
+  - `S3_REGION` - The region your bucket lives in. If you do not know then set this value to `auto`.
+  - `S3_ENDPOINT` - This value will be specific to the bucket as well.
 
 #### Container Signing
 
