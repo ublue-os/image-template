@@ -1,7 +1,7 @@
 [customizations.installer.kickstart]
 contents = """
 %post
-bootc switch --mutate-in-place --transport registry ghcr.io/yourname/yourusername:latest
+bootc switch --mutate-in-place --transport registry ghcr.io/yourrepo/yourimage:latest
 %end
 """
 
