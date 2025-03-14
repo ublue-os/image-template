@@ -56,7 +56,7 @@ jobs:
       # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
       # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
       - name: Image Metadata
-        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
         id: metadata
         with:
           # This generates all the tags for your image, you can add custom tags here too!
@@ -166,7 +166,7 @@ jobs:
       # using Cosign and save the private key as a repository secret in Github for this workflow
       # to consume. For more details, review the image signing section of the README.
       - name: Install Cosign
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+        uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
 
       - name: Sign container image
