@@ -186,21 +186,14 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
     #!/usr/bin/env bash
     set -euo pipefail
 
-    mkdir -p "output"
-
-    echo "Cleaning up previous build"
-    if [[ $type == iso ]]; then
-        sudo rm -rf "output/bootiso" || true
-    else
-        sudo rm -rf "output/${type}" || true
-    fi
-
     args="--type ${type} "
     args+="--use-librepo=True"
 
     if [[ $target_image == localhost/* ]]; then
         args+=" --local"
     fi
+
+    TEMPDIR=$(mktemp -d)
 
     sudo podman run \
       --rm \
@@ -210,13 +203,15 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
       --net=host \
       --security-opt label=type:unconfined_t \
       -v $(pwd)/${config}:/config.toml:ro \
-      -v $(pwd)/output:/output \
+      -v $TEMPDIR:/output \
       -v /var/lib/containers/storage:/var/lib/containers/storage \
       "${bib_image}" \
       ${args} \
       "${target_image}:${tag}"
 
-    sudo chown -R $USER:$USER output
+    mkdir -p output
+    sudo mv -f $TEMPDIR "output/${type}"
+    sudo chown -R $USER:$USER "output/${type}"
 
 # Podman builds the image from the Containerfile and creates a bootable image
 # Parameters:
