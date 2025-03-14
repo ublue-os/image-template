@@ -109,7 +109,7 @@ build $target_image=image_name $tag=default_tag $dx="0" $hwe="0" $gdx="0":
 
     BUILD_ARGS=()
     BUILD_ARGS+=("--build-arg" "MAJOR_VERSION=${centos_version}")
-    BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${image_name}")
+    BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${target_image}")
     BUILD_ARGS+=("--build-arg" "IMAGE_VENDOR=${repo_organization}")
     BUILD_ARGS+=("--build-arg" "ENABLE_DX=${dx}")
     BUILD_ARGS+=("--build-arg" "ENABLE_HWE=${hwe}")
@@ -188,16 +188,16 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
 
     echo "Cleaning up previous build"
     if [[ $type == iso ]]; then
-      sudo rm -rf "output/bootiso" || true
+        sudo rm -rf "output/bootiso" || true
     else
-      sudo rm -rf "output/${type}" || true
+        sudo rm -rf "output/${type}" || true
     fi
 
     args="--type ${type} "
     args+="--use-librepo=True"
 
     if [[ $target_image == localhost/* ]]; then
-      args+=" --local"
+        args+=" --local"
     fi
 
     sudo podman run \
