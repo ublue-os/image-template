@@ -193,7 +193,7 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
         args+=" --local"
     fi
 
-    TEMPDIR=$(mktemp -d)
+    BUILDTMP=$(mktemp -p "${PWD}" -d -t _build-bib.XXXXXXXXXX)
 
     sudo podman run \
       --rm \
@@ -203,14 +203,14 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
       --net=host \
       --security-opt label=type:unconfined_t \
       -v $(pwd)/${config}:/config.toml:ro \
-      -v $TEMPDIR:/output \
+      -v $BUILDTMP:/output \
       -v /var/lib/containers/storage:/var/lib/containers/storage \
       "${bib_image}" \
       ${args} \
       "${target_image}:${tag}"
 
     mkdir -p output
-    sudo mv -f $TEMPDIR "output/${type}"
+    sudo mv -f $BUILDTMP "output/${type}"
     sudo chown -R $USER:$USER "output/${type}"
 
 # Podman builds the image from the Containerfile and creates a bootable image
