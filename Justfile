@@ -210,8 +210,9 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
       ${args} \
       "${target_image}:${tag}"
 
-    rm -rf output
-    sudo mv -f $BUILDTMP output
+    mkdir -p output
+    sudo mv -f $BUILDTMP/* output/
+    sudo rmdir $BUILDTMP
     sudo chown -R $USER:$USER output/
 
 # Podman builds the image from the Containerfile and creates a bootable image
