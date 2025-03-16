@@ -157,11 +157,13 @@ _rootful_load_image $target_image=image_name $tag=default_tag:
     return_code=$?
     set -e
 
+    USER_IMG_ID=$(podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
+
     if [[ $return_code -eq 0 ]]; then
         # If the image is found, load it into rootful podman
         ID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
-        if [[ -z "$ID" ]]; then
-            # If the image ID is not found, copy the image from user podman to root podman
+        if [[ "$ID" != "$USER_IMG_ID" ]]; then
+            # If the image ID is not found or different from user, copy the image from user podman to root podman
             COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
             just sudoif TMPDIR=${COPYTMP} podman image scp ${UID}@localhost::"${target_image}:${tag}" root@localhost::"${target_image}:${tag}"
             rm -rf "${COPYTMP}"
