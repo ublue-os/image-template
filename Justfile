@@ -45,6 +45,7 @@ clean:
     rm -f previous.manifest.json
     rm -f changelog.md
     rm -f output.env
+    rm -f output/
 
 # Sudo Clean Repo
 [group('Utility')]
@@ -186,21 +187,14 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
     #!/usr/bin/env bash
     set -euo pipefail
 
-    mkdir -p "output"
-
-    echo "Cleaning up previous build"
-    if [[ $type == iso ]]; then
-        sudo rm -rf "output/bootiso" || true
-    else
-        sudo rm -rf "output/${type}" || true
-    fi
-
     args="--type ${type} "
     args+="--use-librepo=True"
 
     if [[ $target_image == localhost/* ]]; then
         args+=" --local"
     fi
+
+    BUILDTMP=$(mktemp -p "${PWD}" -d -t _build-bib.XXXXXXXXXX)
 
     sudo podman run \
       --rm \
@@ -210,13 +204,16 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
       --net=host \
       --security-opt label=type:unconfined_t \
       -v $(pwd)/${config}:/config.toml:ro \
-      -v $(pwd)/output:/output \
+      -v $BUILDTMP:/output \
       -v /var/lib/containers/storage:/var/lib/containers/storage \
       "${bib_image}" \
       ${args} \
       "${target_image}:${tag}"
 
-    sudo chown -R $USER:$USER output
+    mkdir -p output
+    sudo mv -f $BUILDTMP/* output/
+    sudo rmdir $BUILDTMP
+    sudo chown -R $USER:$USER output/
 
 # Podman builds the image from the Containerfile and creates a bootable image
 # Parameters:
