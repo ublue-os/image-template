@@ -51,10 +51,6 @@ This template provides an out of the box workflow for getting an ISO image for y
 
 This template provides a way to upload the ISO that is generated from the workflow to a S3 bucket or it will be available as an artifact from the job. To upload to S3 we use a tool called [rclone](https://rclone.org/) which is able to use [many S3 providers](https://rclone.org/s3/). For more details on how to configure this see the details [below](#build-isoyml).
 
-## Using the Just commands
-
-Sure, I'll create a downloadable markdown file for the documentation of the `Justfile`.
-
 ### Justfile Documentation
 
 This `Justfile` contains various commands and configurations for building and managing container images and virtual machine images using Podman and other utilities.
