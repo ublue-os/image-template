@@ -74,11 +74,6 @@ This `Justfile` contains various commands and configurations for building and ma
 - `rebuild-vm`: Alias for `rebuild-qcow2`.
 - `run-vm`: Alias for `run-vm-qcow2`.
 
-#### Private Commands
-
-- `default`: Lists all available commands.
-- `sudo-clean`: Executes the `clean` command with sudo privileges.
-- `sudoif`: Executes a command with sudo if necessary.
 
 #### Commands
 
