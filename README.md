@@ -106,39 +106,6 @@ Arguments:
 - `$hwe`: Enable HWE (default: "0").
 - `$gdx`: Enable GDX (default: "0").
 
-###### `_rootful_load_image`
-
-Loads an image into rootful Podman.
-
-```bash
-just _rootful_load_image $target_image $tag
-```
-
-Arguments:
-- `$target_image`: The name of the target image to be loaded or pulled.
-- `$tag`: The tag of the target image to be loaded or pulled (default: `default_tag`).
-
-###### `_build-bib`
-
-Builds a bootable image using Bootc Image Builder (BIB).
-
-```bash
-just _build-bib $target_image $tag $type $config
-```
-
-Arguments:
-- `$target_image`: The name of the image to build (e.g., localhost/fedora).
-- `$tag`: The tag of the image to build (e.g., latest).
-- `$type`: The type of image to build (e.g., qcow2, raw, iso).
-- `$config`: The configuration file to use for the build (default: `image.toml`).
-
-###### `_rebuild-bib`
-
-Rebuilds a bootable image using Bootc Image Builder (BIB).
-
-```bash
-just _rebuild-bib $target_image $tag $type $config
-```
 ##### Building Virtual Machines and ISOs
 
 ###### `build-qcow2`
