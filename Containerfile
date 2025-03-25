@@ -27,5 +27,4 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     
 ### LINTING
 ## Verify final image and contents are correct.
-## This can be quite sensitive, so it's disabled by default.
-# RUN bootc container lint
+RUN bootc container lint
