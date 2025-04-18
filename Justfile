@@ -289,9 +289,8 @@ _run-vm $target_image $tag $type $config:
     run_args+=(docker.io/qemux/qemu-docker)
 
     # Run the VM and open the browser to connect
-    podman run "${run_args[@]}" &
-    xdg-open http://localhost:${port}
-    fg "%podman"
+    (sleep 30 && xdg-open http://localhost:"$port") &
+    podman run "${run_args[@]}"
 
 # Run a virtual machine from a QCOW2 image
 [group('Run Virtal Machine')]
