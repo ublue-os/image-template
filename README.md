@@ -32,6 +32,12 @@ Working knowledge in the following topics:
 - Github Workflows
   - https://docs.github.com/en/actions/using-workflows
 
+# Video Tutorial
+
+TesterTech has made a tutorial video, check it out: 
+
+[![Video Tutorial](https://img.youtube.com/vi/IxBl11Zmq5w/0.jpg)](https://www.youtube.com/watch?v=IxBl11Zmq5wE)
+
 # How to Use
 
 ## Template
