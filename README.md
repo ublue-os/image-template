@@ -271,6 +271,8 @@ Runs shfmt on all Bash scripts.
 
 ## Community Examples
 
-- [m2os](https://github.com/m2giles/m2os)
-- [bos](https://github.com/bsherman/bos)
-- [homer](https://github.com/bketelsen/homer/)
+- [m2Giles' OS](https://github.com/m2giles/m2os)
+- [bOS](https://github.com/bsherman/bos)
+- [Homer](https://github.com/bketelsen/homer/)
+- [Amy OS](https://github.com/astrovm/amyos)
+- [VeneOS](https://github.com/Venefilyn/veneos)
