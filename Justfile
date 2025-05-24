@@ -337,7 +337,7 @@ lint:
 
 # Runs shfmt on all Bash scripts
 format:
-     #!/usr/bin/env bash
+    #!/usr/bin/env bash
     set -eoux pipefail
     # Check if shfmt is installed
     if ! command -v shfmt &> /dev/null; then
