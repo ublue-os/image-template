@@ -63,7 +63,7 @@ This workflow creates your custom OCI image and publishes it to the Github Conta
 This workflow creates an ISO from your OCI image by utilizing the [bootc-image-builder](https://osbuild.org/docs/bootc/) to generate an ISO. In order to use this workflow you must complete the following steps:
 
 - Modify `iso.toml` to point to your custom image before generating an ISO.
-- If you changed your image name from the default in `build.yml` then in the `build-iso.yml` file edit the `IMAGE_REGISTRY` and `DEFAULT_TAG` environment variables with the correct values. If you did not make changes, skip this step.
+- If you changed your image name from the default in `build.yml` then in the `build-iso.yml` file edit the `IMAGE_REGISTRY`, `IMAGE_NAME` and `DEFAULT_TAG` environment variables with the correct values. If you did not make changes, skip this step.
 - Finally, if you want to upload your ISOs to S3 then you will need to add your S3 configuration to the repository's Action secrets. This can be found by going to your repository settings, under `Secrets and Variables` -> `Actions`. You will need to add the following
   - `S3_PROVIDER` - Must match one of the values from the [supported list](https://rclone.org/s3/)
   - `S3_BUCKET_NAME` - Your unique bucket name
@@ -130,10 +130,7 @@ This `Justfile` contains various commands and configurations for building and ma
 
 #### Environment Variables
 
-- `repo_organization`: The GitHub repository owner (default: "yourname").
-- `image_name`: The name of the image (default: "yourimage").
-- `centos_version`: The CentOS version (default: "stream10").
-- `fedora_version`: The Fedora version (default: "41").
+- `image_name`: The name of the image (default: "image-template").
 - `default_tag`: The default tag for the image (default: "latest").
 - `bib_image`: The Bootc Image Builder (BIB) image (default: "quay.io/centos-bootc/bootc-image-builder:latest").
 
@@ -165,15 +162,12 @@ Cleans the repository by removing build artifacts.
 Builds a container image using Podman.
 
 ```bash
-just build $target_image $tag $dx $hwe $gdx
+just build $target_image $tag
 ```
 
 Arguments:
-- `$target_image`: The tag you want to apply to the image (default: aurora).
-- `$tag`: The tag for the image (default: lts).
-- `$dx`: Enable DX (default: "0").
-- `$hwe`: Enable HWE (default: "0").
-- `$gdx`: Enable GDX (default: "0").
+- `$target_image`: The tag you want to apply to the image (default: `$image_name`).
+- `$tag`: The tag for the image (default: `$default_tag`).
 
 ##### Building Virtual Machines and ISOs
 
