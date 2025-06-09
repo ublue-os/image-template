@@ -36,8 +36,9 @@ jobs:
       id-token: write
 
     steps:
-      - name: lower case the image registry in case of any capitalization
+      - name: Prepare environment
         run: |
+          # Lowercase the image uri
           echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
           echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
 
