@@ -1,5 +1,5 @@
 ---
-name: Build Custom Image
+name: Build container image
 on:
   pull_request:
     branches:
@@ -14,10 +14,12 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: "${{ github.event.repository.name }}"  # the name of the image produced by this build, matches repo names
   IMAGE_DESC: "My Customized Universal Blue Image"
+  IMAGE_KEYWORDS: "bootc,ublue,universal-blue"
+  IMAGE_LOGO_URL: "https://avatars.githubusercontent.com/u/120078124?s=200&v=4"  # Put your own image here for a fancy profile on https://artifacthub.io/!
+  IMAGE_NAME: "${{ github.event.repository.name }}"  # output image name, usually same as repo name
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
-  ARTIFACTHUB_LOGO_URL: "https://avatars.githubusercontent.com/u/120078124?s=200&v=4"  # You should put your own image here so that you get a fancy profile image on https://artifacthub.io/!
+  DEFAULT_TAG: "latest"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
@@ -34,6 +36,12 @@ jobs:
       id-token: write
 
     steps:
+      - name: Prepare environment
+        run: |
+          # Lowercase the image uri
+          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+
       # These stage versions are pinned by https://github.com/renovatebot/renovate
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -60,10 +68,10 @@ jobs:
         id: metadata
         with:
           # This generates all the tags for your image, you can add custom tags here too!
-          # By default, it should generate "latest" and "latest.(date here)".
+          # Default tags are "$DEFAULT_TAG" and "$DEFAULT_TAG.$date".
           tags: |
-            type=raw,value=latest
-            type=raw,value=latest.{{date 'YYYYMMDD'}}
+            type=raw,value=${{ env.DEFAULT_TAG }}
+            type=raw,value=${{ env.DEFAULT_TAG }}.{{date 'YYYYMMDD'}}
             type=raw,value={{date 'YYYYMMDD'}}
             type=sha,enable=${{ github.event_name == 'pull_request' }}
             type=ref,event=pr
@@ -76,11 +84,11 @@ jobs:
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
             org.opencontainers.image.url=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
             org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.version=latest
+            org.opencontainers.image.version=${{ env.DEFAULT_TAG }}.{{date 'YYYYMMDD'}}
             io.artifacthub.package.deprecated=false
-            io.artifacthub.package.keywords=bootc,ublue,universal-blue
+            io.artifacthub.package.keywords=${{ env.IMAGE_KEYWORDS }}
             io.artifacthub.package.license=Apache-2.0
-            io.artifacthub.package.logo-url=${{ env.ARTIFACTHUB_LOGO_URL }}
+            io.artifacthub.package.logo-url=${{ env.IMAGE_LOGO_URL }}
             io.artifacthub.package.prerelease=false
             containers.bootc=1
           sep-tags: " "
@@ -133,20 +141,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Workaround bug where capital letters in your GitHub username make it impossible to push to GHCR.
-      # https://github.com/macbre/push-to-ghcr/issues/12
-      - name: Lowercase Registry
-        id: registry_case
-        uses: ASzc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f # v6
-        with:
-          string: ${{ env.IMAGE_REGISTRY }}
-
-      - name: Lowercase Image
-        id: image_case
-        uses: ASzc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f # v6
-        with:
-          string: ${{ env.IMAGE_NAME }}
-
       - name: Push To GHCR
         uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
@@ -155,8 +149,8 @@ jobs:
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_PASSWORD: ${{ github.token }}
         with:
-          registry: ${{ steps.registry_case.outputs.lowercase }}
-          image: ${{ steps.image_case.outputs.lowercase }}
+          registry: ${{ env.IMAGE_REGISTRY }}
+          image: ${{ env.IMAGE_NAME }}
           tags: ${{ steps.metadata.outputs.tags }}
           username: ${{ env.REGISTRY_USER }}
           password: ${{ env.REGISTRY_PASSWORD }}
@@ -172,7 +166,7 @@ jobs:
       - name: Sign container image
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         run: |
-          IMAGE_FULL="${{ steps.registry_case.outputs.lowercase }}/${{ steps.image_case.outputs.lowercase }}"
+          IMAGE_FULL="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}"
           for tag in ${{ steps.metadata.outputs.tags }}; do
             cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE_FULL:$tag
           done

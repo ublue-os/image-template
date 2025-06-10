@@ -1,5 +1,5 @@
 ---
-name: Build ISOs
+name: Build disk images
 
 on:
   workflow_dispatch:
@@ -19,13 +19,15 @@ on:
     branches:
       - main
     paths:
-      - './iso.toml'
-      - './.github/workflows/build-iso.yml'
-      - './Justfile'
+      - './disk_config/disk.toml'
+      - './disk_config/iso.toml'
+      - './.github/workflows/build-disk.yml'
 
 env:
-  IMAGE_REGISTRY: "ghcr.io/${{ github.repository }}"
+  IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
   DEFAULT_TAG: "latest"
+  BIB_IMAGE: "ghcr.io/lorbuschris/bootc-image-builder:20250608" # "quay.io/centos-bootc/bootc-image-builder:latest" - see https://github.com/osbuild/bootc-image-builder/pull/954
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
@@ -33,20 +35,31 @@ concurrency:
 
 jobs:
   build:
-    name: Build ISOs
+    name: Build disk images
     runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
     strategy:
       fail-fast: false
+      matrix:
+        disk-type: ["qcow2", "anaconda-iso"]
     permissions:
       contents: read
       packages: read
       id-token: write
 
     steps:
-      - name: lower case the image registry in case of any capitalization
+      - name: Prepare environment
         run: |
+          USER_UID=$(id -u)
+          USER_GID=$(id -g)
+          # Concatenate the types with a hyphen
+          DISK_TYPE=$(echo "${{ matrix.disk-type }}" | tr ' ' '-')
+          # Lowercase the image uri
           echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
-      
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+          echo "DISK_TYPE=${DISK_TYPE}" >> ${GITHUB_ENV}
+          echo "USER_UID=${USER_UID}" >> ${GITHUB_ENV}
+          echo "USER_GID=${USER_GID}" >> ${GITHUB_ENV}
+
       - name: Install dependencies
         if: inputs.platform == 'arm64'
         run: |
@@ -64,19 +77,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Setup Just
-        uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff # v3
-
-      - name: Build ISO
+      - name: Build disk images
         id: build
-        uses: ublue-os/bootc-image-builder-action@main
+        uses: osbuild/bootc-image-builder-action@main
         with:
-          bootc-image-builder-image: ghcr.io/centos-workstation/bootc-image-builder:latest
-          use-librepo: true
-          config-file: ./iso.toml
-          image: ${{ env.IMAGE_REGISTRY }}:${{ env.DEFAULT_TAG }}
+          builder-image: ${{ env.BIB_IMAGE }}
+          config-file: ${{ matrix.disk-type == 'anaconda-iso' && './disk_config/iso.toml' || './disk_config/disk.toml' }}
+          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+          chown: ${{ env.USER_UID }}:${{ env.USER_GID }}
+          types: ${{ matrix.disk-type }}
+          additional-args: --use-librepo=True
 
-      - name: Upload ISOs and Checksum to Job Artifacts
+      - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

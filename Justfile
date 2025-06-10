@@ -1,7 +1,4 @@
-export repo_organization := env("GITHUB_REPOSITORY_OWNER", "yourname")
-export image_name := env("IMAGE_NAME", "yourimage")
-export centos_version := env("CENTOS_VERSION", "stream10")
-export fedora_version := env("CENTOS_VERSION", "41")
+export image_name := env("IMAGE_NAME", "image-template") # output image name, usually same as repo name, change as needed
 export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 
@@ -74,47 +71,25 @@ sudoif command *args:
 # This Justfile recipe builds a container image using Podman.
 #
 # Arguments:
-#   $target_image - The tag you want to apply to the image (default: aurora).
-#   $tag - The tag for the image (default: lts).
-#   $dx - Enable DX (default: "0").
-#   $hwe - Enable HWE (default: "0").
-#   $gdx - Enable GDX (default: "0").
-#
-# DX:
-#   Developer Experience (DX) is a feature that allows you to install the latest developer tools for your system.
-#   Packages include VScode, Docker, Distrobox, and more.
-# HWE:
-#   Hardware Enablement (HWE) is a feature that allows you to install the latest hardware support for your system.
-#   Currently this install the Hyperscale SIG kernel which will stay ahead of the CentOS Stream kernel and enables btrfs
-# GDX: https://docs.projectaurora.io/gdx/
-#   GPU Developer Experience (GDX) creates a base as an AI and Graphics platform.
-#   Installs Nvidia drivers, CUDA, and other tools.
+#   $target_image - The tag you want to apply to the image (default: $image_name).
+#   $tag - The tag for the image (default: $default_tag).
 #
 # The script constructs the version string using the tag and the current date.
 # If the git working directory is clean, it also includes the short SHA of the current HEAD.
 #
-# just build $target_image $tag $dx $hwe $gdx
+# just build $target_image $tag
 #
 # Example usage:
-#   just build aurora lts 1 0 1
+#   just build aurora lts
 #
 # This will build an image 'aurora:lts' with DX and GDX enabled.
 #
 
 # Build the image using the specified parameters
-build $target_image=image_name $tag=default_tag $dx="0" $hwe="0" $gdx="0":
+build $target_image=image_name $tag=default_tag:
     #!/usr/bin/env bash
 
-    # Get Version
-    ver="${tag}-${centos_version}.$(date +%Y%m%d)"
-
     BUILD_ARGS=()
-    BUILD_ARGS+=("--build-arg" "MAJOR_VERSION=${centos_version}")
-    BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${target_image}")
-    BUILD_ARGS+=("--build-arg" "IMAGE_VENDOR=${repo_organization}")
-    BUILD_ARGS+=("--build-arg" "ENABLE_DX=${dx}")
-    BUILD_ARGS+=("--build-arg" "ENABLE_HWE=${hwe}")
-    BUILD_ARGS+=("--build-arg" "ENABLE_GDX=${gdx}")
     if [[ -z "$(git status -s)" ]]; then
         BUILD_ARGS+=("--build-arg" "SHA_HEAD_SHORT=$(git rev-parse --short HEAD)")
     fi
@@ -180,9 +155,9 @@ _rootful_load_image $target_image=image_name $tag=default_tag:
 #   target_image: The name of the image to build (ex. localhost/fedora)
 #   tag: The tag of the image to build (ex. latest)
 #   type: The type of image to build (ex. qcow2, raw, iso)
-#   config: The configuration file to use for the build (default: image.toml)
+#   config: The configuration file to use for the build (default: disk_config/disk.toml)
 
-# Example: just _rebuild-bib localhost/fedora latest qcow2 image.toml
+# Example: just _rebuild-bib localhost/fedora latest qcow2 disk_config/disk.toml
 _build-bib $target_image $tag $type $config: (_rootful_load_image target_image tag)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -190,10 +165,6 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
     args="--type ${type} "
     args+="--use-librepo=True "
     args+="--rootfs=btrfs"
-
-    if [[ $target_image == localhost/* ]]; then
-        args+=" --local"
-    fi
 
     BUILDTMP=$(mktemp -p "${PWD}" -d -t _build-bib.XXXXXXXXXX)
 
@@ -221,34 +192,34 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
 #   target_image: The name of the image to build (ex. localhost/fedora)
 #   tag: The tag of the image to build (ex. latest)
 #   type: The type of image to build (ex. qcow2, raw, iso)
-#   config: The configuration file to use for the build (deafult: image.toml)
+#   config: The configuration file to use for the build (deafult: disk_config/disk.toml)
 
-# Example: just _rebuild-bib localhost/fedora latest qcow2 image.toml
+# Example: just _rebuild-bib localhost/fedora latest qcow2 disk_config/disk.toml
 _rebuild-bib $target_image $tag $type $config: (build target_image tag) && (_build-bib target_image tag type config)
 
 # Build a QCOW2 virtual machine image
 [group('Build Virtal Machine Image')]
-build-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "qcow2" "image.toml")
+build-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "qcow2" "disk_config/disk.toml")
 
 # Build a RAW virtual machine image
 [group('Build Virtal Machine Image')]
-build-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "raw" "image.toml")
+build-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "raw" "disk_config/disk.toml")
 
 # Build an ISO virtual machine image
 [group('Build Virtal Machine Image')]
-build-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "iso" "iso.toml")
+build-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "iso" "disk_config/iso.toml")
 
 # Rebuild a QCOW2 virtual machine image
 [group('Build Virtal Machine Image')]
-rebuild-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "qcow2" "image.toml")
+rebuild-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "qcow2" "disk_config/disk.toml")
 
 # Rebuild a RAW virtual machine image
 [group('Build Virtal Machine Image')]
-rebuild-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "raw" "image.toml")
+rebuild-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "raw" "disk_config/disk.toml")
 
 # Rebuild an ISO virtual machine image
 [group('Build Virtal Machine Image')]
-rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "iso" "iso.toml")
+rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "iso" "disk_config/iso.toml")
 
 # Run a virtual machine with the specified image type and configuration
 _run-vm $target_image $tag $type $config:
@@ -294,15 +265,15 @@ _run-vm $target_image $tag $type $config:
 
 # Run a virtual machine from a QCOW2 image
 [group('Run Virtal Machine')]
-run-vm-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "qcow2" "image.toml")
+run-vm-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "qcow2" "disk_config/disk.toml")
 
 # Run a virtual machine from a RAW image
 [group('Run Virtal Machine')]
-run-vm-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "raw" "image.toml")
+run-vm-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "raw" "disk_config/disk.toml")
 
 # Run a virtual machine from an ISO
 [group('Run Virtal Machine')]
-run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "iso" "iso.toml")
+run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "iso" "disk_config/iso.toml")
 
 # Run a virtual machine using systemd-vmspawn
 [group('Run Virtal Machine')]
