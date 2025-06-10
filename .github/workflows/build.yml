@@ -94,6 +94,27 @@ jobs:
           sep-tags: " "
           sep-annotations: " "
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+
+      # With cosign we can verify the authenticity of the upstream image.
+      # This is highly recommended to ensure the upstream wasn't tampered with.
+      # This can fail through a key mismatch or upstream image not being signed.
+      #
+      # We find the upstream image by checking the 'FROM' field.
+      - name: Verify upstream container image
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        shell: bash
+        run: |
+          set -oue pipefail
+          echo "Get upstream image tag"
+          image=$(grep -i '^FROM.*:\S*' "./Containerfile" | awk '{print $2}')
+          echo "Using Cosign to verify image"
+          cosign verify \
+            --key https://raw.githubusercontent.com/ublue-os/main/main/cosign.pub \
+            "${image}"
+
       - name: Build Image
         id: build_image
         uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2
@@ -159,10 +180,6 @@ jobs:
       # your project for others to consume. You will need to create a public and private key
       # using Cosign and save the private key as a repository secret in Github for this workflow
       # to consume. For more details, review the image signing section of the README.
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-
       - name: Sign container image
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         run: |
