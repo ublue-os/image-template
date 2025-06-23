@@ -51,7 +51,10 @@ jobs:
       #   uses: ublue-os/remove-unwanted-software@517622d6452028f266b7ba4cc9a123b5f58a6b53 # v7
       #   with:
       #     remove-codeql: true
-      
+
+      - name: Mount BTRFS for podman storage
+        uses: ublue-os/container-storage-action@main
+
       - name: Get current date
         id: date
         run: |
