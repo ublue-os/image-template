@@ -1,0 +1,2 @@
+SUBSYSTEM=="pci", ATTR{power/control}="auto"
+SUBSYSTEM=="ata_port", KERNEL=="ata*", ATTR{device/power/control}="auto"
