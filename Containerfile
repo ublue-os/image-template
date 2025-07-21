@@ -21,7 +21,7 @@ FROM  ghcr.io/ublue-os/kinoite-main:latest
 
 #RUN rpm-ostree install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 RUN rpm-ostree install distrobox just htop powertop fastfetch btop neovim figlet lolcat gparted nvtop gh cronie cronie-anacron rpmdevtools vim-common chromium vlc zsh thunderbird qemu go
-RUN rpm-ostree install @virtualization
+RUN rpm-ostree install libvirt-daemon-driver-network libvirt-daemon-driver-nodedev libvirt-daemon-driver-qemu libvirt-daemon-driver-storage-core qemu-audio-spice qemu-char-spice qemu-device-display-qxl qemu-device-display-virtio-gpu qemu-device-display-virtio-vga qemu-device-usb-redirect qemu-system-x86-core
 RUN curl -fsSL https://repo.librewolf.net/librewolf.repo > /etc/yum.repos.d/librewolf.repo &&  rpm-ostree install librewolf
 
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
