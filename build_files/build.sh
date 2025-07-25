@@ -12,6 +12,18 @@ set -ouex pipefail
 # this installs a package from fedora repos
 # dnf5 install -y tmux
 
+# Use a COPR Example:
+#
+# dnf5 -y copr enable ublue-os/staging
+# dnf5 -y install package
+# Disable COPRs so they don't end up enabled on the final image:
+# dnf5 -y copr disable ublue-os/staging
+
+# Add albert app launcher
+dnf config-manager addrepo --from-repofile=/ctx/albert.repo
+dnf install albert -y
+
+# Add the many hyprland ecosystem tools from copr
 dnf5 -y copr enable solopasha/hyprland
 dnf5 -y install \
 	hyprland \
@@ -45,12 +57,6 @@ dnf5 -y install \
 # Disable COPRs so they don't end up enabled on the final image:
 dnf5 -y copr disable solopasha/hyprland
 
-# Use a COPR Example:
-#
-# dnf5 -y copr enable ublue-os/staging
-# dnf5 -y install package
-# Disable COPRs so they don't end up enabled on the final image:
-# dnf5 -y copr disable ublue-os/staging
 
 #### Example for enabling a System Unit File
 
