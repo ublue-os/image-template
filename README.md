@@ -2,8 +2,6 @@
 
 This repository is meant to be a template for building your own custom [bootc](https://github.com/bootc-dev/bootc) image. This template is the recommended way to make customizations to any image published by the Universal Blue Project.
 
-This template includes a Containerfile and a Github workflow for building the container image, signing, and proper metadata to be listed on [artifacthub](https://artifacthub.io/). As soon as the workflow is enabled in your repository, it will build the container image and push it to the Github Container Registry.
-
 # Community
 
 If you have questions about this template, try the following spaces:
@@ -122,9 +120,9 @@ From your bootc system, run the following command substituting in your Github us
 ```bash
 sudo bootc switch ghcr.io/<username>/<image_name>
 ```
-This should queue your image for the next reboot, which you can do immediately after the command finishes. You have officially set up your custom image! See the following heading for an explanation of the important parts of the template for customization.
+This should queue your image for the next reboot, which you can do immediately after the command finishes. You have officially set up your custom image! See the following section for an explanation of the important parts of the template for customization.
 
-# Explanation of Contents
+# Repository Contents
 
 ## Containerfile
 
@@ -132,21 +130,25 @@ The [Containerfile](./Containerfile) defines the operations used to customize th
 
 ## build.sh
 
-The [build.sh](build_files/build.sh) file is called from your Containerfile. It is the best place to install new packages or make any other customization to your system. There are customization examples contained within it for your perusal.
+The [build.sh](./build_files/build.sh) file is called from your Containerfile. It is the best place to install new packages or make any other customization to your system. There are customization examples contained within it for your perusal.
 
-## Github Actions Workflows
+## build.yml
 
-### build.yml
+The [build.yml](./.github/workflows/build.yml) Github Actions workflow creates your custom OCI image and publishes it to the Github Container Registry (GHCR). By default, the image name will match the Github repository name. There are several environment variables at the start of the workflow which may be of interest to change.
 
-This workflow creates your custom OCI image and publishes it to the Github Container Registry (GHCR). By default, the image name will match the Github repository name.
+# Building Disk Images
 
-### build-disk.yml
+This template provides an out of the box workflow for creating disk images (ISO, qcow, raw) for your custom OCI image which can be used to directly install onto your machines.
 
-This workflow creates a disk images from your OCI image by utilizing the [bootc-image-builder](https://osbuild.org/docs/bootc/). In order to use this workflow you must complete the following steps:
+This template provides a way to upload the disk images that is generated from the workflow to a S3 bucket. The disk images will also be available as an artifact from the job, if you wish to use an alternate provider. To upload to S3 we use [rclone](https://rclone.org/) which is able to use [many S3 providers](https://rclone.org/s3/).
 
-- Modify `disk_config/iso.toml` to point to your custom container image before generating an ISO image.
-- If you changed your image name from the default in `build.yml` then in the `build-disk.yml` file edit the `IMAGE_REGISTRY`, `IMAGE_NAME` and `DEFAULT_TAG` environment variables with the correct values. If you did not make changes, skip this step.
-- Finally, if you want to upload your disk images to S3 then you will need to add your S3 configuration to the repository's Action secrets. This can be found by going to your repository settings, under `Secrets and Variables` -> `Actions`. You will need to add the following
+## Setting Up ISO Builds
+
+The [build-disk.yml](./.github/workflows/build-disk.yml) Github Actions workflow creates a disk image from your OCI image by utilizing the [bootc-image-builder](https://osbuild.org/docs/bootc/). In order to use this workflow you must complete the following steps:
+
+1. Modify `disk_config/iso.toml` to point to your custom container image before generating an ISO image.
+2. If you changed your image name from the default in `build.yml` then in the `build-disk.yml` file edit the `IMAGE_REGISTRY`, `IMAGE_NAME` and `DEFAULT_TAG` environment variables with the correct values. If you did not make changes, skip this step.
+3. Finally, if you want to upload your disk images to S3 then you will need to add your S3 configuration to the repository's Action secrets. This can be found by going to your repository settings, under `Secrets and Variables` -> `Actions`. You will need to add the following
   - `S3_PROVIDER` - Must match one of the values from the [supported list](https://rclone.org/s3/)
   - `S3_BUCKET_NAME` - Your unique bucket name
   - `S3_ACCESS_KEY_ID` - It is recommended that you make a separate key just for this workflow
@@ -155,12 +157,6 @@ This workflow creates a disk images from your OCI image by utilizing the [bootc-
   - `S3_ENDPOINT` - This value will be specific to the bucket as well.
 
 Once the workflow is done, you'll find the disk images either in your S3 bucket or as part of the summary under `Artifacts` after the workflow is completed.
-
-# Building Disk Images
-
-This template provides an out of the box workflow for creating disk images (ISO, qcow, raw) for your custom OCI image which can be used to directly install onto your machines.
-
-This template provides a way to upload the disk images that is generated from the workflow to a S3 bucket. The disk images will also be available as an artifact from the job, if you wish to use an alternate provider. To upload to S3 we use [rclone](https://rclone.org/) which is able to use [many S3 providers](https://rclone.org/s3/). For more configuration details see [above](README#build-disk.yml).
 
 # Artifacthub
 
@@ -175,14 +171,13 @@ This template comes with the necessary tooling to index your image on [artifacth
 # Justfile Documentation
 
 The `Justfile` contains various commands and configurations for building and managing container images and virtual machine images using Podman and other utilities.
-Feel free to modify it, but it comes preloaded with many useful recipes, documented below.
+To use it, you must have installed [just](https://just.systems/man/en/introduction.html) from your package manager or manually. It is available by default on all Universal Blue images.
 
 ## Environment Variables
 
 - `image_name`: The name of the image (default: "image-template").
 - `default_tag`: The default tag for the image (default: "latest").
 - `bib_image`: The Bootc Image Builder (BIB) image (default: "quay.io/centos-bootc/bootc-image-builder:latest").
-
 
 ## Building The Image
 
