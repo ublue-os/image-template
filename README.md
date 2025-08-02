@@ -15,7 +15,7 @@ This template includes a Containerfile and a Github workflow for building the co
 
 # Community
 
-If you have questions about this template, try the following spaces (in order of preference):
+If you have questions about this template, try the following spaces:
 - [Universal Blue Forums](https://universal-blue.discourse.group/)
 - [Universal Blue Discord](https://discord.gg/WEu6BdFEtp)
 - [bootc discussion forums](https://github.com/bootc-dev/bootc/discussions) - This is not an Universal Blue managed space, but is an excellent resource if you run into issues with this template.
