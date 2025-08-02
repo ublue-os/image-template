@@ -4,10 +4,10 @@ This repository is meant to be a template for building your own custom [bootc](h
 
 # Community
 
-If you have questions about this template, try the following spaces:
+If you have questions about this template after following the instructions, try the following spaces:
 - [Universal Blue Forums](https://universal-blue.discourse.group/)
 - [Universal Blue Discord](https://discord.gg/WEu6BdFEtp)
-- [bootc discussion forums](https://github.com/bootc-dev/bootc/discussions) - This is not an Universal Blue managed space, but is an excellent resource if you run into issues with this template.
+- [bootc discussion forums](https://github.com/bootc-dev/bootc/discussions) - This is not an Universal Blue managed space, but is an excellent resource if you run into issues with building bootc images.
 
 # How to Use
 
@@ -27,9 +27,7 @@ These steps assume you have the following:
 
 ### Step 1a: Copying the Template
 
-Select `Use this Template` on this page. You can name your copy whatever you would like, it will not affect the image build at all.
-<!--TODO Should this be noted? Might be unneeded. -->
-It is recommended to keep the repository public, because GitHub will otherwise bill you according to [their standards for private repositories](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+Select `Use this Template` on this page. You can set the name and description of your repository to whatever you would like, but all other settings should be left untouched.
 
 Once you have finished copying the template, you need to enable the Github Actions workflows for your new repository.
 To enable the workflows, go to the `Actions` tab of the new repository and click the button to enable workflows.
