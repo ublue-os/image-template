@@ -88,13 +88,6 @@ gh secret set SIGNING_SECRET < cosign.key
 ```
 </details>
 
-Commit and push the `cosign.pub` file to the root of your git repository using the following commands:
-```bash
-git add cosign.pub
-git commit -m "Add cosign public key"
-git push
-```
-
 ### Step 2b: Choosing Your Base Image
 
 To choose a base image, simply modify the line in the container file starting with `FROM`. This will be the image your image derives from, and is your starting point for modifications. If you don't know which image to pick, choosing the one your system is currently on is the best bet for a smooth transition. To find out what image your system currently uses, run the following command:
@@ -103,11 +96,17 @@ sudo bootc status
 ```
 This will show you all the info you need to know about your current image. The image you are currently on is displayed after `Booted image:`. Simply paste that information after the `FROM` statement in the containerfile to set it as your base image and push your changes to Github:
 
+### Step 2c: Changing Names
+
+Change the first line in the [Justfile](./Justfile) to your image's name.
+
+To commit and push all the files changed and added in step 2 into your Github repository:
 ```bash
-git add Containerfile
-git commit -m "Set base image"
+git add Containerfile Justfile cosign.pub
+git commit -m "Initial Setup"
 git push
 ```
+Once pushed, go look at the Actions tab on your Github repository's page.  The green checkmark should be showing on the top commit, which means your new image is ready!
 
 ## Step 3: Switch to Your Image
 
