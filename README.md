@@ -1,15 +1,6 @@
 # image-template
 
-# Purpose
-
-This repository is meant to be a template for building your own custom [bootc](https://github.com/bootc-dev/bootc) image. This template is the recommended way to make customizations to any image published by the Universal Blue Project:
-- Products: [Aurora](https://getaurora.dev/), [Bazzite](https://bazzite.gg/), [Bluefin](https://projectbluefin.io/), [uCore](https://projectucore.io/)
-- Base images: [main](https://github.com/ublue-os/main/) - the product images build on these and may be a better starting point depending on what you want. 
-
-or any other base image if you want to start from scratch:
-
-- Fedora: `quay.io/fedora/fedora-bootc:41`
-- CentOS Stream 10: `quay.io/centos-bootc/centos-bootc:stream10`
+This repository is meant to be a template for building your own custom [bootc](https://github.com/bootc-dev/bootc) image. This template is the recommended way to make customizations to any image published by the Universal Blue Project.
 
 This template includes a Containerfile and a Github workflow for building the container image, signing, and proper metadata to be listed on [artifacthub](https://artifacthub.io/). As soon as the workflow is enabled in your repository, it will build the container image and push it to the Github Container Registry.
 
@@ -73,14 +64,16 @@ Do NOT put in a password when it asks you to, just press enter. The signing key 
 Next, you need to add the key to GitHub. This makes use of GitHub's secret signing system.
 
 <details>
-<summary>Using the Github Web Interface (preferred)</summary>
-Go to your repository settings, under `Secrets and Variables` -> `Actions`
-![image](https://user-images.githubusercontent.com/1264109/216735595-0ecf1b66-b9ee-439e-87d7-c8cc43c2110a.png)
-Add a new secret and name it `SIGNING_SECRET`, then paste the contents of `cosign.key` into the secret and save it. Make sure it's the .key file and not the .pub file. Once done, it should look like this:
-![image](https://user-images.githubusercontent.com/1264109/216735690-2d19271f-cee2-45ac-a039-23e6a4c16b34.png)
+    <summary>Using the Github Web Interface (preferred)</summary>
+
+    Go to your repository settings, under `Secrets and Variables` -> `Actions`
+    ![image](https://user-images.githubusercontent.com/1264109/216735595-0ecf1b66-b9ee-439e-87d7-c8cc43c2110a.png)
+    Add a new secret and name it `SIGNING_SECRET`, then paste the contents of `cosign.key` into the secret and save it. Make sure it's the .key file and not the .pub file. Once done, it should look like this:
+    ![image](https://user-images.githubusercontent.com/1264109/216735690-2d19271f-cee2-45ac-a039-23e6a4c16b34.png)
 </details>
 <details>
 <summary>Using the Github CLI</summary>
+
 If you have the `github-cli` installed, run:
 
 ```bash
@@ -90,11 +83,26 @@ gh secret set SIGNING_SECRET < cosign.key
 
 ### Step 2b: Choosing Your Base Image
 
-To choose a base image, simply modify the line in the container file starting with `FROM`. This will be the image your image derives from, and is your starting point for modifications. If you don't know which image to pick, choosing the one your system is currently on is the best bet for a smooth transition. To find out what image your system currently uses, run the following command:
+To choose a base image, simply modify the line in the container file starting with `FROM`. This will be the image your image derives from, and is your starting point for modifications.
+For a base image, you can choose any of the Universal Blue images or start from a Fedora Atomic system. Below this paragraph is a dropdown with a non-exhaustive list of potential base images.
+
+<details>
+    <summary>Base Images</summary>
+
+    - Bazzite: `ghcr.io/ublue-os/bazzite:stable`
+    - Aurora: `ghcr.io/ublue-os/aurora:stable`
+    - Bluefin: `ghcr.io/ublue-os/bluefin:stable`
+    - Universal Blue Base: `ghcr.io/ublue-os/base-main:latest`
+    - Fedora: `quay.io/fedora/fedora-bootc:42`
+
+    You can find more Universal Blue images on the [packages page](https://github.com/orgs/ublue-os/packages).
+</details>
+
+If you don't know which image to pick, choosing the one your system is currently on is the best bet for a smooth transition. To find out what image your system currently uses, run the following command:
 ```bash
 sudo bootc status
 ```
-This will show you all the info you need to know about your current image. The image you are currently on is displayed after `Booted image:`. Simply paste that information after the `FROM` statement in the containerfile to set it as your base image and push your changes to Github:
+This will show you all the info you need to know about your current image. The image you are currently on is displayed after `Booted image:`. Paste that information after the `FROM` statement in the Containerfile to set it as your base image.
 
 ### Step 2c: Changing Names
 
