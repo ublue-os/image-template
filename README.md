@@ -31,7 +31,7 @@ If you prefer instructions in video form, TesterTech created an excellent tutori
 
 These steps assume you have the following:
 - A Github Account
-- A machine running a bootc image (e.g. Bazzite, Bluefin, or Aurora)
+- A machine running a bootc image (e.g. Bazzite, Bluefin, Aurora, or Fedora Atomic)
 - Experience installing and using CLI programs
 
 ## Step 1: Preparing the Template
