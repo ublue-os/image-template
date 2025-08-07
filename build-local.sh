@@ -12,6 +12,7 @@ BUILD_HYPRLAND=1
 BUILD_LAPTOP=1
 BUILD_LAPTOP_CLAMSHELL=1
 BUILD_LAPTOP_OPENRAZER=1
+BUILD_CITRIX=1
 
 docker build \
     -f Containerfile \
@@ -24,4 +25,5 @@ docker build \
     --build-arg BUILD_LAPTOP="${BUILD_LAPTOP}" \
     --build-arg BUILD_LAPTOP_CLAMSHELL="${BUILD_LAPTOP_CLAMSHELL}" \
     --build-arg BUILD_LAPTOP_OPENRAZER="${BUILD_LAPTOP_OPENRAZER}" \
+    --build-arg BUILD_CITRIX="${BUILD_CITRIX}" \
     .

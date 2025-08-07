@@ -13,6 +13,7 @@ ARG BUILD_HYPRLAND
 ARG BUILD_LAPTOP
 ARG BUILD_LAPTOP_CLAMSHELL
 ARG BUILD_LAPTOP_OPENRAZER
+ARG BUILD_CITRIX
 
 # Layer on my own customizations
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
