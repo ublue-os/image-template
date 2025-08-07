@@ -17,7 +17,7 @@ env:
   IMAGE_DESC: "Custom Bazzite KDE+Hyprland"
   IMAGE_KEYWORDS: "bootc,ublue,universal-blue"
   IMAGE_LOGO_URL: "https://avatars.githubusercontent.com/u/120078124?s=200&v=4"  # Put your own image here for a fancy profile on https://artifacthub.io/!
-  IMAGE_NAME: "${{ bazzite-kdeland-razer }}"  # output image name, usually same as repo name
+  IMAGE_NAME: "bazzite-kdeland-razer"  # output image name, usually same as repo name
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
   BUILD_FROM_IMAGE: "ghcr.io/ublue-os/bazzite-nvidia-open:stable"
   BUILD_SHELL: 1
