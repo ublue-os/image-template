@@ -46,6 +46,13 @@ It is the entry-point for installing all other applications.
 
 The [build.yml](./.github/workflows/build.yml) is configured to build the image with the [defaults specified](#environment-variables) and publishes it to the Github Container Registry (GHCR).
 
+## Post-Installation Steps
+
+I still need to install:
+
+ - [ ] OpenRazer
+ - [ ] Citrix
+
 ## Acknowledgements
 
  - [bootc](https://github.com/bootc-dev/bootc) - the underlying technology
