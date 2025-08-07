@@ -9,6 +9,7 @@ FROM $BUILD_FROM_IMAGE
 
 # Build args
 ARG BUILD_SHELL
+ARG BUILD_HYPRLAND
 
 # Layer on my own customizations
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
