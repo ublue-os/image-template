@@ -10,7 +10,16 @@ This repository is meant to be a template for building your own custom [bootc](h
 
 ## Use This Image
 
+The recommended way to install this image is to rebase from another [Fedora Atomic](https://fedoraproject.org/atomic-desktops/) installation (e.g., bazzite KDE).
+This can be done as follows (sources:
+[1](https://bazzite.gg/#image-picker),
+[2](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rebase_guide/)):
 
+```bash
+rpm-ostree reset
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/nickfraser/bazzite-kdeland-razer:latest
+ujust _install-system-flatpaks # Optional, but recommended
+```
 
 ## Environment Variables
 
