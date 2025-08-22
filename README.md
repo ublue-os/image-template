@@ -49,10 +49,10 @@ First, install the [cosign CLI tool](https://edu.chainguard.dev/open-source/sigs
 With the cosign tool installed, run inside your repo folder:
 
 ```bash
-cosign generate-key-pair
+COSIGN_PASSWORD="" cosign generate-key-pair
 ```
 
-Do NOT put in a password when it asks you to, just press enter. The signing key will be used in GitHub Actions and will not work if it is encrypted.
+The signing key will be used in GitHub Actions and will not work if it is password protected.
 
 > [!WARNING]
 > Be careful to *never* accidentally commit `cosign.key` into your git repo. If this key goes out to the public, the security of your repository is compromised.
