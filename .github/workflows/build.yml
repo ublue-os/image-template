@@ -53,7 +53,15 @@ jobs:
       #     remove-codeql: true
 
       - name: Mount BTRFS for podman storage
-        uses: ublue-os/container-storage-action@main
+        id: container-storage-action
+        uses: ublue-os/container-storage-action@911baca08baf30c8654933e9e9723cb399892140
+
+        # Fallback to the remove-unwanted-software-action if github doesn't allocate enough space
+        # See: https://github.com/ublue-os/container-storage-action/pull/11
+        continue-on-error: true 
+        with:
+          target-dir: /var/lib/containers
+          mount-opts: compress-force=zstd:2
 
       - name: Get current date
         id: date
