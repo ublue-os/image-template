@@ -22,7 +22,11 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
-    /ctx/build.sh
+    rm /opt # this is a file not a directory currently \
+    mkdir /opt # create the opt directory so files can be installed to it \
+    /ctx/build.sh \
+    mv /opt /usr/share/factory # move files installed to /opt to /usr/share/factory so they will be in the final image \
+    ln -s /var/opt /opt # restore symlink between /var/opt and /opt again \
     
 ### LINTING
 ## Verify final image and contents are correct.
