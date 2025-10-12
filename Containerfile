@@ -1,6 +1,6 @@
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
-COPY build_files /
+COPY --chmod=0755 build_files /
 COPY /sys_files /sys_files
 
 # Base Image
@@ -47,8 +47,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     rm /opt && \
     mkdir /opt && \
     /ctx/build.sh && \
-    mv /opt /usr/share/factory && \
-    ln -s /var/opt /opt
+    /ctx/optfix.sh
 
 # /opt is symlinked to /var/opt
 # for packages that require it to be writeable do the following:
