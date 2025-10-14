@@ -90,11 +90,13 @@ build $target_image=image_name $tag=default_tag:
     #!/usr/bin/env bash
 
     BUILD_ARGS=()
+    mapfile -t podman_proxy_flags < <(scripts/podman-proxy-flags.sh)
     if [[ -z "$(git status -s)" ]]; then
         BUILD_ARGS+=("--build-arg" "SHA_HEAD_SHORT=$(git rev-parse --short HEAD)")
     fi
 
     podman build \
+        "${podman_proxy_flags[@]}" \
         "${BUILD_ARGS[@]}" \
         --pull=newer \
         --tag "${target_image}:${tag}" \
@@ -167,6 +169,7 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
     args+="--rootfs=btrfs"
 
     BUILDTMP=$(mktemp -p "${PWD}" -d -t _build-bib.XXXXXXXXXX)
+    mapfile -t podman_proxy_flags < <(scripts/podman-proxy-flags.sh)
 
     sudo podman run \
       --rm \
@@ -175,6 +178,7 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
       --pull=newer \
       --net=host \
       --security-opt label=type:unconfined_t \
+      "${podman_proxy_flags[@]}" \
       -v $(pwd)/${config}:/config.toml:ro \
       -v $BUILDTMP:/output \
       -v /var/lib/containers/storage:/var/lib/containers/storage \
@@ -259,9 +263,11 @@ _run-vm $target_image $tag $type $config:
     run_args+=(--volume "${PWD}/${image_file}":"/boot.${type}")
     run_args+=(docker.io/qemux/qemu)
 
+    mapfile -t podman_proxy_flags < <(scripts/podman-proxy-flags.sh)
+
     # Run the VM and open the browser to connect
     (sleep 30 && xdg-open http://localhost:"$port") &
-    podman run "${run_args[@]}"
+    podman run "${podman_proxy_flags[@]}" "${run_args[@]}"
 
 # Run a virtual machine from a QCOW2 image
 [group('Run Virtal Machine')]
@@ -293,7 +299,6 @@ spawn-vm rebuild="0" type="qcow2" ram="6G":
       --vsock=false --pass-ssh-key=false \
       -i ./output/**/*.{{ type }}
 
-
 # Runs shell check on all Bash scripts
 lint:
     #!/usr/bin/env bash
@@ -317,3 +322,10 @@ format:
     fi
     # Run shfmt on all Bash scripts
     /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
+
+# Capture the HTTPS proxy certificate advertised by https_proxy
+[group('Utility')]
+proxy-cert output="cache/https-proxy-ca.pem":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    scripts/proxy-cert.sh "{{ output }}"
