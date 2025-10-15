@@ -134,6 +134,103 @@ The [build.sh](./build_files/build.sh) file is called from your Containerfile. I
 
 The [build.yml](./.github/workflows/build.yml) Github Actions workflow creates your custom OCI image and publishes it to the Github Container Registry (GHCR). By default, the image name will match the Github repository name. There are several environment variables at the start of the workflow which may be of interest to change.
 
+# Adding Nvidia Driver Support
+
+Universal Blue's dedicated Nvidia images (`ublue-os/*-nvidia`) have been deprecated following [community vote](https://github.com/ublue-os/main/issues/927). Users can now add Nvidia support to any base image using the method below.
+
+## How to Add Nvidia Drivers
+
+This template includes the necessary scripts to add Nvidia driver support to your custom image. The implementation follows the same approach used by Bazzite and other Universal Blue projects.
+
+### Option 1: Use the Example Containerfile
+
+The easiest way to add Nvidia support is to use the example [Containerfile.nvidia](./Containerfile.nvidia) as a reference. This file demonstrates the complete setup needed to add Nvidia drivers.
+
+Key components:
+1. Import the nvidia akmods for your kernel
+2. Remove conflicting packages (nvidia-gpu-firmware, rocm packages)
+3. Run the nvidia-install.sh script to install drivers
+
+### Option 2: Modify Your Existing Containerfile
+
+To add Nvidia support to your existing Containerfile, you need to:
+
+1. **Add build arguments** at the top of your Containerfile:
+```dockerfile
+ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-fsync}"
+ARG FEDORA_VERSION="${FEDORA_VERSION:-42}"
+ARG KERNEL_VERSION="${KERNEL_VERSION:-6.16.4-102.fsync.fc42.x86_64}"
+```
+
+2. **Import nvidia akmods** before your base image:
+```dockerfile
+FROM ghcr.io/ublue-os/akmods-nvidia:${KERNEL_FLAVOR}-${FEDORA_VERSION}-${KERNEL_VERSION} AS nvidia-akmods
+```
+
+3. **Add a nvidia stage** after your main customizations:
+```dockerfile
+FROM base AS nvidia
+
+# Remove conflicting packages
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
+    dnf5 -y remove \
+        nvidia-gpu-firmware \
+        rocm-hip \
+        rocm-opencl \
+        rocm-clinfo \
+        rocm-smi || true
+
+# Install Nvidia drivers
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=bind,from=nvidia-akmods,src=/rpms,dst=/tmp/akmods-rpms \
+    --mount=type=tmpfs,dst=/tmp \
+    --mount=type=secret,id=GITHUB_TOKEN \
+    /ctx/ghcurl "https://raw.githubusercontent.com/ublue-os/main/refs/heads/main/build_files/nvidia-install.sh" --retry 3 -Lo /tmp/nvidia-install.sh && \
+    chmod +x /tmp/nvidia-install.sh && \
+    IMAGE_NAME="${IMAGE_NAME}" /tmp/nvidia-install.sh && \
+    rm -f /usr/share/vulkan/icd.d/nouveau_icd.*.json && \
+    ln -s libnvidia-ml.so.1 /usr/lib64/libnvidia-ml.so
+```
+
+### Important Notes
+
+- **Kernel Version**: The `KERNEL_VERSION` must match the kernel in your base image. You can find available versions at the [akmods-nvidia packages page](https://github.com/orgs/ublue-os/packages/container/package/akmods-nvidia).
+
+- **Kernel Flavor**: Common kernel flavors include:
+  - `fsync` - Standard Universal Blue kernel with fsync patches
+  - `bazzite` - Bazzite's gaming-optimized kernel
+  - `main` - Standard Fedora kernel
+
+- **IMAGE_NAME**: Set this to match your base image type (e.g., `kinoite`, `silverblue`) to get the appropriate GPU management tools (supergfxctl).
+
+- **Build Arguments**: You can override these values during build:
+  ```bash
+  podman build --build-arg KERNEL_VERSION=6.16.4-102.fsync.fc42.x86_64 .
+  ```
+
+### Available Scripts
+
+This template includes helper scripts in the `build_files` directory:
+
+- **nvidia-install.sh**: Main script that installs Nvidia drivers and configures the system
+- **ghcurl**: Helper script for authenticated GitHub API requests (handles rate limiting)
+
+These scripts are maintained to match the implementation used by Universal Blue's main projects.
+
+### Verifying Your Setup
+
+After building your image with Nvidia support:
+
+1. Switch to your image: `sudo bootc switch ghcr.io/<username>/<image_name>`
+2. Reboot your system
+3. Verify the drivers are loaded: `nvidia-smi`
+4. Check kernel modules: `lsmod | grep nvidia`
+
 # Building Disk Images
 
 This template provides an out of the box workflow for creating disk images (ISO, qcow, raw) for your custom OCI image which can be used to directly install onto your machines.
