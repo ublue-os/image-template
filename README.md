@@ -200,6 +200,11 @@ RUN --mount=type=cache,dst=/var/cache \
 ### Important Notes
 
 - **Kernel Version**: The `KERNEL_VERSION` must match the kernel in your base image. You can find available versions at the [akmods-nvidia packages page](https://github.com/orgs/ublue-os/packages/container/package/akmods-nvidia).
+  
+  To find the kernel version in your base image, you can inspect it:
+  ```bash
+  podman run --rm ghcr.io/ublue-os/bazzite:stable rpm -q kernel
+  ```
 
 - **Kernel Flavor**: Common kernel flavors include:
   - `fsync` - Standard Universal Blue kernel with fsync patches
@@ -230,6 +235,21 @@ After building your image with Nvidia support:
 2. Reboot your system
 3. Verify the drivers are loaded: `nvidia-smi`
 4. Check kernel modules: `lsmod | grep nvidia`
+
+### Troubleshooting
+
+**Build fails with "kmod-nvidia version does not match nvidia-driver version"**
+- This means the kernel version in your base image doesn't match the akmods version you're using
+- Solution: Check the kernel version in your base image and update the `KERNEL_VERSION` build argument
+
+**Image builds but nvidia-smi shows "No devices found"**
+- Verify your system has an Nvidia GPU installed
+- Check if the nouveau driver is loaded instead: `lsmod | grep nouveau`
+- If nouveau is loaded, you may need to add `modprobe.blacklist=nouveau` to your kernel parameters
+
+**Missing supergfxctl tools**
+- Make sure you set `IMAGE_NAME` to match your desktop environment (`kinoite` or `silverblue`)
+- For other desktops, these tools are optional and may not be available
 
 # Building Disk Images
 
