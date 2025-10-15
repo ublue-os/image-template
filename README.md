@@ -203,7 +203,8 @@ RUN --mount=type=cache,dst=/var/cache \
   
   To find the kernel version in your base image, you can inspect it:
   ```bash
-  podman run --rm ghcr.io/ublue-os/bazzite:stable rpm -q kernel
+  podman run --rm <your-base-image:tag> rpm -q kernel
+  # Example: podman run --rm ghcr.io/ublue-os/bazzite:stable rpm -q kernel
   ```
 
 - **Kernel Flavor**: Common kernel flavors include:
