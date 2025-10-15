@@ -9,9 +9,11 @@ COPY build_files /
 ARG BASE_IMAGE="${BASE_IMAGE:-ghcr.io/ublue-os/bazzite:stable}"
 ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-fsync}"
 ARG FEDORA_VERSION="${FEDORA_VERSION:-42}"
+# IMPORTANT: The kernel version must match your base image's kernel
+# Check available versions at: https://github.com/orgs/ublue-os/packages/container/package/akmods-nvidia
 ARG KERNEL_VERSION="${KERNEL_VERSION:-6.16.4-102.fsync.fc42.x86_64}"
 
-# Import nvidia akmods
+# Import nvidia akmods - this provides the compiled Nvidia kernel modules
 FROM ghcr.io/ublue-os/akmods-nvidia:${KERNEL_FLAVOR}-${FEDORA_VERSION}-${KERNEL_VERSION} AS nvidia-akmods
 
 # Base stage - your customizations
@@ -37,6 +39,7 @@ ARG IMAGE_NAME="${IMAGE_NAME:-base}"
 ARG KERNEL_VERSION="${KERNEL_VERSION:-6.16.4-102.fsync.fc42.x86_64}"
 
 # Remove packages that conflict with Nvidia
+# These are typically AMD GPU firmware and drivers
 RUN --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
     --mount=type=bind,from=ctx,source=/,target=/ctx \
