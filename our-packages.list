@@ -1,0 +1,10 @@
+emacs
+emacsclient
+emacs-common
+gdk-pixbuf2-modules-extra
+info
+libgccjit
+libotf
+libtree-sitter
+libtree-sitter-java
+libXaw

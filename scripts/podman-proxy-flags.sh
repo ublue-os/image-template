@@ -41,7 +41,15 @@ sanitize_proxy() {
     fi
 
     if [[ "${host}" == "127.0.0.1" || "${host}" == "localhost" || "${host}" == "0.0.0.0" ]]; then
-        host="host.containers.internal"
+        case "${PODMAN_PROXY_MODE:-auto}" in
+            auto | "") host="host.containers.internal" ;;
+            localhost)  host="localhost" ;;
+            keep)
+                if [[ "${host}" == "0.0.0.0" ]]; then
+                    host="localhost"
+                fi
+                ;;
+        esac
     fi
 
     local rebuilt=""
@@ -61,13 +69,24 @@ sanitize_proxy() {
 
 augment_no_proxy() {
     local value="${1:-}"
+    local default_entry="host.containers.internal"
+    case "${PODMAN_PROXY_MODE:-auto}" in
+        localhost) default_entry="localhost" ;;
+        keep)
+            if [[ "${value}" == *"localhost"* ]]; then
+                default_entry="localhost"
+            fi
+            ;;
+    esac
+
     if [[ -z "${value}" ]]; then
-        printf 'host.containers.internal'
+        printf '%s' "${default_entry}"
         return 0
     fi
+
     case ",${value}," in
-        *,host.containers.internal,*) printf '%s' "${value}" ;;
-        *) printf '%s,host.containers.internal' "${value}" ;;
+        *,${default_entry},*) printf '%s' "${value}" ;;
+        *) printf '%s,%s' "${value}" "${default_entry}" ;;
     esac
 }
 
@@ -109,11 +128,30 @@ fi
 
 if [[ -n "${proxy_ca}" ]]; then
     proxy_ca_abs="$(cd "$(dirname "${proxy_ca}")" && pwd)/$(basename "${proxy_ca}")"
-    flags+=(--env "CURL_CA_BUNDLE=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem")
-    flags+=(--env "SSL_CERT_FILE=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem")
-    flags+=(--env "REQUESTS_CA_BUNDLE=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem")
-    flags+=(--volume "${proxy_ca_abs}:/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem:ro,z")
-    flags+=(--volume "${proxy_ca_abs}:/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt:ro,z")
+
+    if command -v openssl >/dev/null 2>&1; then
+        if ! openssl x509 -in "${proxy_ca_abs}" -noout -text | grep -q 'CA:TRUE'; then
+            printf 'Warning: %s does not look like a CA certificate – TLS interception may still fail.\n' "${proxy_ca_abs}" >&2
+        fi
+    fi
+
+    bundle_targets=(
+        /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+        /etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt
+        /etc/pki/tls/certs/ca-bundle.crt
+        /etc/ssl/certs/ca-bundle.crt
+        /etc/ssl/certs/ca-certificates.crt
+        /etc/pki/tls/cert.pem
+    )
+    primary_bundle="/etc/pki/tls/certs/ca-bundle.crt"
+
+    flags+=(--env "CURL_CA_BUNDLE=${primary_bundle}")
+    flags+=(--env "SSL_CERT_FILE=${primary_bundle}")
+    flags+=(--env "REQUESTS_CA_BUNDLE=${primary_bundle}")
+
+    for target in "${bundle_targets[@]}"; do
+        flags+=(--volume "${proxy_ca_abs}:${target}:ro,z")
+    done
 fi
 
 if [[ "${#flags[@]}" -gt 0 ]]; then
