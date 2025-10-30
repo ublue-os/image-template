@@ -3,9 +3,9 @@ FROM scratch AS ctx
 COPY build_files /
 COPY pci_pm.rules /etc/udev/rules.d/
 # Base Image
-#FROM  ghcr.io/ublue-os/kinoite-main:latest
+FROM  ghcr.io/ublue-os/kinoite-main:latest
 #FROM ghcr.io/ublue-os/bazzite:stable
-FROM quay.io/fedora/fedora-bootc:43
+#FROM quay.io/fedora/fedora-bootc:43
 ## Other possible base images include:
 # FROM ghcr.io/ublue-os/bazzite:latest
 # FROM ghcr.io/ublue-os/bluefin-nvidia:stable
