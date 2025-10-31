@@ -46,7 +46,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
-      # This is optional, but if you see that your builds are way too big for the runners, you can enable this by uncommenting the following lines:
+      # This is optional, but if you see that your builds are way too big for the runners, you will need to enable this if you wish to use the rechunker.
+      # You can enable this by uncommenting the following lines:
       # - name: Maximize build space
       #   uses: ublue-os/remove-unwanted-software@517622d6452028f266b7ba4cc9a123b5f58a6b53 # v7
       #   with:
@@ -121,6 +122,7 @@ jobs:
       # Rechunk is a script that we use on Universal Blue to make sure there isnt a single huge layer when your image gets published.
       # This does not make your image faster to download, just provides better resumability and fixes a few errors.
       # Documentation for Rechunk is provided on their github repository at https://github.com/hhd-dev/rechunk
+      # You can enable this by uncommenting the following lines, ensure you also uncomment the "Maximize build space" step:
       # - name: Retag for Rechunker
       #   if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
       #   run: |
@@ -137,6 +139,7 @@ jobs:
       #     prev-ref: "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
       #     version: "${{ env.DEFAULT_TAG }}"
       #     labels: ${{ steps.metadata.outputs.labels }}
+
 
       # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
       # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
