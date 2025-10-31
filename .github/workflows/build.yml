@@ -123,14 +123,17 @@ jobs:
       # Documentation for Rechunk is provided on their github repository at https://github.com/hhd-dev/rechunk
       # - name: Retag for Rechunker
       #   if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-      #   run: podman tag ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }} raw-img:${{ env.DEFAULT_TAG }}
-      #
+      #   run: |
+      #     sudo skopeo copy \
+      #       containers-storage:[overlay@/home/runner/.local/share/containers/storage]localhost/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }} \
+      #       containers-storage:localhost/raw-img:latest
+
       # - name: Run Rechunker
       #   id: rechunk
       #   uses: hhd-dev/rechunk@5fbe1d3a639615d2548d83bc888360de6267b1a2 # v1.2.4
       #   with:
       #     rechunk: "ghcr.io/hhd-dev/rechunk:v1.1.2"
-      #     ref: "raw-img"
+      #     ref: "localhost/raw-img"
       #     prev-ref: "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
       #     version: "${{ env.DEFAULT_TAG }}"
       #     labels: ${{ steps.metadata.outputs.labels }}
