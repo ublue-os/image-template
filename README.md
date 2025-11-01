@@ -249,11 +249,9 @@ Runs shell check on all Bash scripts.
 
 Runs shfmt on all Bash scripts.
 
-# Additionnal ressources 
+## Additionnal ressources 
 
-For additional driver support (Nvidia, framework, openrazer... ), a list of scripts and images are availables : [ublue-akmod](https://github.com/ublue-os/akmods)
-
-Example 
+For additional driver support, ublue maintains a set of scripts and container images available at [ublue-akmod](https://github.com/ublue-os/akmods). These images include the necessary scripts to install multiple kernel drivers within the container (Nvidia, OpenRazer, Framework...) The documentation provides guidance on how to properly integrate these drivers into your container image.
 
 ## Community Examples
 
