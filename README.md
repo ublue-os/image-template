@@ -249,6 +249,12 @@ Runs shell check on all Bash scripts.
 
 Runs shfmt on all Bash scripts.
 
+# Additionnal ressources 
+
+For additional driver support (Nvidia, framework, openrazer... ), a list of scripts and images are availables : [ublue-akmod](https://github.com/ublue-os/akmods)
+
+Example 
+
 ## Community Examples
 
 These are images derived from this template (or similar enough to this template). Reference them when building your image!
