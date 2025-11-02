@@ -133,11 +133,10 @@ jobs:
       #   uses: hhd-dev/rechunk@5fbe1d3a639615d2548d83bc888360de6267b1a2 # v1.2.4
       #   with:
       #     rechunk: "ghcr.io/hhd-dev/rechunk:v1.1.2"
-      #     ref: "localhost/raw-img"
+      #     ref: "raw-img"
       #     prev-ref: "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
       #     version: "${{ env.DEFAULT_TAG }}"
       #     labels: ${{ steps.metadata.outputs.labels }}
-
 
       # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
       # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
