@@ -125,7 +125,7 @@ jobs:
       #   uses: hhd-dev/rechunk@5fbe1d3a639615d2548d83bc888360de6267b1a2 # v1.2.4
       #   with:
       #     rechunk: "ghcr.io/hhd-dev/rechunk:v1.1.2"
-      #     ref: "raw-img"
+      #     ref: "${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
       #     prev-ref: "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
       #     version: "${{ env.DEFAULT_TAG }}"
       #     labels: ${{ steps.metadata.outputs.labels }}
