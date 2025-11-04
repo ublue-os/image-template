@@ -107,23 +107,14 @@ jobs:
           sep-tags: " "
 
       - name: Build Image
-        id: build_image
-        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2
-        with:
-          containerfiles: |
-            ./Containerfile
-          # Postfix image name with -custom to make it a little more descriptive
-          # Syntax: https://docs.github.com/en/actions/learn-github-actions/expressions#format
-          image: ${{ env.IMAGE_NAME }}
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
-          oci: false
-
-      - name: Load image to root storage
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        id: build
         run: |
-          podman save ${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }} | sudo podman load
-          sudo podman tag ${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }} raw-img:${{ env.DEFAULT_TAG }}
+          sudo buildah build \
+            --storage-driver=overlay \
+            --format=docker \
+            --file ./Containerfile \
+            --tag ${IMAGE_NAME}:${DEFAULT_TAG} \
+            .
 
       # Rechunk is a script that we use on Universal Blue to make sure there isnt a single huge layer when your image gets published.
       # This does not make your image faster to download, just provides better resumability and fixes a few errors.
