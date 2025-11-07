@@ -257,6 +257,7 @@ For additional driver support, ublue maintains a set of scripts and container im
 
 These are images derived from this template (or similar enough to this template). Reference them when building your image!
 
+- [Origami Linux](https://github.com/john-holt4/Origami)
 - [m2Giles' OS](https://github.com/m2giles/m2os)
 - [bOS](https://github.com/bsherman/bos)
 - [Homer](https://github.com/bketelsen/homer/)
