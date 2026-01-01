@@ -208,31 +208,31 @@ _build-bib $target_image $tag $type $config $show_sudo_notif=show_sudo_notificat
 #   show_sudo_notif: Whether or not to send a notification when the final sudo prompt opens (default: 0)
 
 # Example: just _rebuild-bib localhost/fedora latest qcow2 disk_config/disk.toml 0 
-_rebuild-bib $target_image $tag $type $config $show_sudo_notif=show_sudo_notification: (build target_image tag) && (_build-bib target_image tag type config show_sudo_notif delete_last_build)
+_rebuild-bib $target_image $tag $type $config $show_sudo_notif=show_sudo_notification: (build target_image tag) && (_build-bib target_image tag type config show_sudo_notif)
 
 # Build a QCOW2 virtual machine image
 [group('Build Virtal Machine Image')]
-build-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_build-bib target_image tag "qcow2" "disk_config/disk.toml" show_sudo_notif delete_last_build)
+build-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_build-bib target_image tag "qcow2" "disk_config/disk.toml" show_sudo_notif)
 
 # Build a RAW virtual machine image
 [group('Build Virtal Machine Image')]
-build-raw $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_build-bib target_image tag "raw" "disk_config/disk.toml" show_sudo_notif delete_last_build)
+build-raw $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_build-bib target_image tag "raw" "disk_config/disk.toml" show_sudo_notif)
 
 # Build an ISO virtual machine image
 [group('Build Virtal Machine Image')]
-build-iso $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_build-bib target_image tag "iso" "disk_config/iso.toml" show_sudo_notif delete_last_build)
+build-iso $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_build-bib target_image tag "iso" "disk_config/iso.toml" show_sudo_notif)
 
 # Rebuild a QCOW2 virtual machine image
 [group('Build Virtal Machine Image')]
-rebuild-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_rebuild-bib target_image tag "qcow2" "disk_config/disk.toml" show_sudo_notif delete_last_build)
+rebuild-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_rebuild-bib target_image tag "qcow2" "disk_config/disk.toml" show_sudo_notif)
 
 # Rebuild a RAW virtual machine image
 [group('Build Virtal Machine Image')]
-rebuild-raw $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_rebuild-bib target_image tag "raw" "disk_config/disk.toml" show_sudo_notif delete_last_build)
+rebuild-raw $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_rebuild-bib target_image tag "raw" "disk_config/disk.toml" show_sudo_notif)
 
 # Rebuild an ISO virtual machine image
 [group('Build Virtal Machine Image')]
-rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_rebuild-bib target_image tag "iso" "disk_config/iso.toml" show_sudo_notif delete_last_build)
+rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag $show_sudo_notif=show_sudo_notification: && (_rebuild-bib target_image tag "iso" "disk_config/iso.toml" show_sudo_notif)
 
 # Run a virtual machine with the specified image type and configuration
 _run-vm $target_image $tag $type $config:
