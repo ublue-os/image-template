@@ -92,11 +92,12 @@ jobs:
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
+          name: disk-${{ matrix.disk-type }}-${{ runner.arch }}
           path: ${{ steps.build.outputs.output-directory }}
           if-no-files-found: error
           retention-days: 0
           compression-level: 0
-          overwrite: true
+          overwrite: false
       
       - name: Upload to S3
         if: inputs.upload-to-s3 == true && github.event_name != 'pull_request'
