@@ -7,12 +7,15 @@ FROM ghcr.io/ublue-os/bazzite:stable
 
 ## Other possible base images include:
 # FROM ghcr.io/ublue-os/bazzite:latest
-# FROM ghcr.io/ublue-os/bluefin-nvidia:stable
+# FROM ghcr.io/ublue-os/bluefin:stable
+# FROM ghcr.io/ublue-os/aurora:stable
 # 
 # ... and so on, here are more base images
 # Universal Blue Images: https://github.com/orgs/ublue-os/packages
 # Fedora base image: quay.io/fedora/fedora-bootc:41
 # CentOS base images: quay.io/centos-bootc/centos-bootc:stream10
+#
+# NOTE: For Nvidia support, see Containerfile.nvidia and README.md
 
 ### [IM]MUTABLE /opt
 ## Some bootable images, like Fedora, have /opt symlinked to /var/opt, in order to
