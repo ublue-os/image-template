@@ -2,8 +2,15 @@
 FROM scratch AS ctx
 COPY build_files /
 
+# NVIDIA drivers from ublue-os akmods
+FROM ghcr.io/ublue-os/akmods-nvidia-open:main-43 AS akmods-nvidia
+
+ARG BUILD_FLAVOR="${BUILD_FLAVOR:-}"
+
 # Base Image
 FROM ghcr.io/ublue-os/bazzite:stable
+
+ARG BUILD_FLAVOR
 
 ## Other possible base images include:
 # FROM ghcr.io/ublue-os/bazzite:latest
@@ -25,6 +32,10 @@ FROM ghcr.io/ublue-os/bazzite:stable
 
 # RUN rm /opt && mkdir /opt
 
+### NVIDIA DRIVERS
+## Copy pre-built NVIDIA drivers from akmods layer (only used when BUILD_FLAVOR=nvidia)
+COPY --from=akmods-nvidia / /usr/share/akmods
+
 ### MODIFICATIONS
 ## make modifications desired in your image and install packages by modifying the build.sh script
 ## the following RUN directive does all the things required to run "build.sh" as recommended.
@@ -33,7 +44,8 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
-    /ctx/build.sh
+    /ctx/build.sh && \
+    BUILD_FLAVOR="${BUILD_FLAVOR}" /ctx/nvidia.sh
     
 ### LINTING
 ## Verify final image and contents are correct.
