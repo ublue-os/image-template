@@ -41,6 +41,10 @@ Once you have the repository on your local drive, proceed to the next step.
 
 ## Step 2: Initial Setup
 
+### Working Behind an HTTPS Proxy
+
+If your environment exports `https_proxy`, run `just proxy-cert` before building. The helper captures the proxy's TLS certificate into `cache/https-proxy-ca.pem`; mount that file into your podman runs at `/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem` and `/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt`.
+
 ### Step 2a: Creating a Cosign Key
 
 Container signing is important for end-user security and is enabled on all Universal Blue images. By default the image builds *will fail* if you don't.
