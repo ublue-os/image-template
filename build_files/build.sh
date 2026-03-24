@@ -22,3 +22,13 @@ dnf5 install -y tmux
 #### Example for enabling a System Unit File
 
 systemctl enable podman.socket
+
+#### Example of preparation for installing a package that requires a symlinked directory
+
+# /opt is symlinked to /var/opt
+# for packages that require it to be writeable do the following:
+rm /opt # this is a file not a directory currently
+mkdir /opt # create the opt directory so files can be installed to it
+# install package (dnf5 -y install .....)
+mv /opt /usr/share/factory # move files installed to /opt to /usr/share/factory so they will be in the final image
+ln -s /var/opt /opt # restore symlink between /var/opt and /opt again
