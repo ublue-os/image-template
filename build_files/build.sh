@@ -19,7 +19,9 @@ dnf5 install -y \
     swaylock \
     xdg-desktop-portal-hyprland \
     hyprpaper \
-    hyprlock
+    hyprlock \
+    nano \
+   bash  
 
 systemctl enable podman.socket
 
