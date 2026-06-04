@@ -1,0 +1,70 @@
+# Example Containerfile with Nvidia support
+# This shows how to add Nvidia drivers to any base image
+
+# Allow build scripts to be referenced without being copied into the final image
+FROM scratch AS ctx
+COPY build_files /
+
+# Your base image - can be any Universal Blue or Fedora image
+ARG BASE_IMAGE="${BASE_IMAGE:-ghcr.io/ublue-os/bazzite:stable}"
+ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-fsync}"
+ARG FEDORA_VERSION="${FEDORA_VERSION:-42}"
+# IMPORTANT: The kernel version must match your base image's kernel
+# Check available versions at: https://github.com/orgs/ublue-os/packages/container/package/akmods-nvidia
+ARG KERNEL_VERSION="${KERNEL_VERSION:-6.16.4-102.fsync.fc42.x86_64}"
+
+# Import nvidia akmods - this provides the compiled Nvidia kernel modules
+FROM ghcr.io/ublue-os/akmods-nvidia:${KERNEL_FLAVOR}-${FEDORA_VERSION}-${KERNEL_VERSION} AS nvidia-akmods
+
+# Base stage - your customizations
+FROM ${BASE_IMAGE} AS base
+
+ARG IMAGE_NAME="${IMAGE_NAME:-base}"
+ARG FEDORA_VERSION="${FEDORA_VERSION:-42}"
+
+### MODIFICATIONS
+## make modifications desired in your image and install packages by modifying the build.sh script
+## the following RUN directive does all the things required to run "build.sh" as recommended.
+
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=tmpfs,dst=/tmp \
+    /ctx/build.sh
+
+# Nvidia stage - add nvidia drivers
+FROM base AS nvidia
+
+ARG IMAGE_NAME="${IMAGE_NAME:-base}"
+ARG KERNEL_VERSION="${KERNEL_VERSION:-6.16.4-102.fsync.fc42.x86_64}"
+
+# Remove packages that conflict with Nvidia
+# These are typically AMD GPU firmware and drivers
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
+    dnf5 config-manager unsetopt skip_if_unavailable && \
+    dnf5 -y remove \
+        nvidia-gpu-firmware \
+        rocm-hip \
+        rocm-opencl \
+        rocm-clinfo \
+        rocm-smi || true
+
+# Install Nvidia drivers
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=bind,from=nvidia-akmods,src=/rpms,dst=/tmp/akmods-rpms \
+    --mount=type=tmpfs,dst=/tmp \
+    --mount=type=secret,id=GITHUB_TOKEN \
+    /ctx/ghcurl "https://raw.githubusercontent.com/ublue-os/main/refs/heads/main/build_files/nvidia-install.sh" --retry 3 -Lo /tmp/nvidia-install.sh && \
+    chmod +x /tmp/nvidia-install.sh && \
+    IMAGE_NAME="${IMAGE_NAME}" /tmp/nvidia-install.sh && \
+    rm -f /usr/share/vulkan/icd.d/nouveau_icd.*.json && \
+    ln -s libnvidia-ml.so.1 /usr/lib64/libnvidia-ml.so
+
+### LINTING
+## Verify final image and contents are correct.
+RUN bootc container lint
