@@ -32,8 +32,7 @@ dnf5 install -y \
     htop \
     wget \
     curl \
-    tshark \
-    wezterm
+    tshark 
 
 # Use a COPR Example:
 #
