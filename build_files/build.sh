@@ -34,6 +34,10 @@ dnf5 install -y \
     curl \
     tshark 
 
+dnf5 -y copr enable wez/wezterm
+dnf5 install -y wezterm
+dnf5 -y copr disable wez/wezterm
+
 # Use a COPR Example:
 #
 # dnf5 -y copr enable ublue-os/staging
