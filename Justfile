@@ -135,16 +135,35 @@ rechunk $target_image=image_name $tag=default_tag:
     # TODO: pin chunkah image to hash once mature enough
     # You may run into space issues on github runenrs as we are making a
     # complete copy of the image
-    export CHUNKAH_CONFIG_STR=$(podman inspect "${target_image}")
-    podman run --rm --mount=type=image,src="${target_image}",target=/chunkah \
-    -e CHUNKAH_CONFIG_STR quay.io/coreos/chunkah:latest \
-    build \
-    --verbose \
-    --compressed \
-    --max-layers 128 \
-    --prune /sysroot/ \
-    --label ostree.commit- --label ostree.final-diffid- \
-    --tag "${target_image}:${tag}" | podman load
+    # Write inspect output to a file to avoid the 128 KiB env-var limit
+    # (see https://github.com/coreos/chunkah/issues/136)
+    CHUNKAH_CONFIG_FILE=$(mktemp)
+    CHUNKAH_OUTPUT_DIR=$(mktemp -d)
+    trap 'rm -f "${CHUNKAH_CONFIG_FILE}"; rm -rf "${CHUNKAH_OUTPUT_DIR}"' EXIT
+    podman inspect "${target_image}" > "${CHUNKAH_CONFIG_FILE}"
+    # Mount a parent dir and write to a child path; chunkah requires the
+    # --output path to not already exist. Directory layout per chunkah docs:
+    # https://github.com/coreos/chunkah#output-options
+    podman run --rm \
+      --mount=type=image,src="${target_image}",target=/chunkah \
+      -v "${CHUNKAH_CONFIG_FILE}:/chunkah-config.json:ro,Z" \
+      -v "${CHUNKAH_OUTPUT_DIR}:/run/out:Z" \
+      quay.io/coreos/chunkah:latest \
+      build \
+      --verbose \
+      --compressed \
+      --max-layers 128 \
+      --prune /sysroot/ \
+      --label ostree.commit- --label ostree.final-diffid- \
+      --config /chunkah-config.json \
+      --output oci:/run/out/chunked
+    podman rmi "${target_image}:${tag}"
+    podman run --rm \
+      --privileged \
+      -v "${CHUNKAH_OUTPUT_DIR}/chunked:/oci:ro,Z" \
+      -v /var/lib/containers:/var/lib/containers \
+      quay.io/skopeo/stable \
+      copy "oci:/oci" "containers-storage:${target_image}:${tag}"
 
 # Split the image for smaller updates (Classical)!
 ostree-rechunk $target_image=image_name $tag=default_tag:
