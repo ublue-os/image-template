@@ -13,12 +13,12 @@ COMMON_PACKAGES=(
     chezmoi-bash-completion
     chezmoi-fish-completion
     droidsansmono-nerd-fonts
-    easyeffects
+    # easyeffects
     etckeeper
     firacode-nerd-fonts
     firamono-nerd-fonts
     google-android-emoji-fonts
-    google-noto-emoji-vf-fonts
+    # google-noto-emoji-vf-fonts
     google-roboto-fonts
     htop
     joe

@@ -35,17 +35,17 @@ DESKTOP_PACKAGES=(
     starship
 
     # Programming stuff I find handy
-#    code
+    code
     gh
     git-filter-repo
     git-koji
     git-lfs
 #    git-subtree
-#    jq
+    jq
     nodejs
     nodejs-npm
     perl-App-cpanminus
-#    perl-CPAN
+    perl-CPAN
     perltidy
     pre-commit
     ruff
@@ -74,12 +74,12 @@ DESKTOP_PACKAGES=(
 #    zed
 
     # Handy tools
-#    fzf
+    fzf
     thefuck
     plocate
-#    mtr
+    mtr
     netcat
-#    rclone
+    rclone
 
     # Prefer "native" over flathub so Rich Presence works better
     vesktop
@@ -87,11 +87,11 @@ DESKTOP_PACKAGES=(
     discord-canary
 
     # Various (de)compression tools
-#    bzip2
+    bzip2
     bzip3
     bzip3-grep
     bzip3-tools
-#    gzip
+    gzip
     ncompress
 #    p7zip
 #    unzip
