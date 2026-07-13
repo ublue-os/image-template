@@ -54,7 +54,7 @@ DESKTOP_PACKAGES=(
     sqlite
     sqlite-analyzer
     sqlite-debug
-    sqlite-docs
+    sqlite-doc
     sqlite-tools
     uv
     yamllint
