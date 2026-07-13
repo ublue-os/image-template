@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ouex pipefail
 
+# shellcheck source=/dev/null
+source /ctx/lib-verify.sh
+
 # Common packages for all variants
 COMMON_PACKAGES=(
     age
@@ -49,3 +52,6 @@ systemctl enable "${COMMON_SYSTEMCTL[@]}"
 
 tailscale completion fish > /etc/fish/completions/tailscale
 tailscale completion bash > /etc/bash_completion.d/tailscale
+
+# Fail the build if any requested package didn't actually get installed
+verify_packages_installed "${COMMON_PACKAGES[@]}"

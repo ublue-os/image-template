@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ouex pipefail
 
+# shellcheck source=/dev/null
+source /ctx/lib-verify.sh
+
 # Desktop variants:
 # Includes: chezmoi, starship, 1password, VSCode, and programming tools
 
@@ -120,3 +123,6 @@ HOME=/var/tmp op --cache=false completion fish > /etc/fish/completions/op
 HOME=/var/tmp op --cache=false completion bash > /etc/bash_completion.d/op
 
 npm completion > /etc/bash_completion.d/npm
+
+# Fail the build if any requested package didn't actually get installed
+verify_packages_installed "${DESKTOP_PACKAGES[@]}"

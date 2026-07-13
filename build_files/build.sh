@@ -16,6 +16,9 @@ for repo in /etc/yum.repos.d/terra*.repo; do
     fi
 done
 
+# Copy the contents of system_files/ into the image
+cp -avf "/ctx/system_files"/. /
+
 ######################
 # common build steps #
 ######################
