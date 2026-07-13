@@ -138,8 +138,9 @@ rechunk $target_image=image_name $tag=default_tag:
     # base image is also using chunkah
     CHUNKAH_CONFIG_FILE="$(mktemp)"
 
-    # You may omit --tmpdir here when you are confident /tmp has enough space
-    CHUNKAH_OUTPUT_DIR="$(mktemp -d --tmpdir="${PWD}")"
+    # You may omit the current directory here if you are confident that you
+    # won't run out of space on /tmp for your image
+    CHUNKAH_OUTPUT_DIR="$(mktemp -d ./"${target_image}"_chunkah_XXXXXX)"
 
     trap 'rm -f "${CHUNKAH_CONFIG_FILE}"; rm -rf "${CHUNKAH_OUTPUT_DIR}"' EXIT
     podman inspect "${target_image}:${tag}" > "${CHUNKAH_CONFIG_FILE}"
