@@ -8,7 +8,7 @@ source /ctx/lib-verify.sh
 # Includes: chezmoi, starship, 1password, VSCode, and programming tools
 
 dnf5 -y copr enable atim/starship
-dnf5 -y copr enable scottames/ghostty
+# dnf5 -y copr enable scottames/ghostty
 
 # https://code.visualstudio.com/docs/setup/linux#_rhel-fedora-and-centos-based-distributions
 rpm --import https://packages.microsoft.com/keys/microsoft.asc &&
@@ -36,9 +36,16 @@ DESKTOP_PACKAGES=(
     starship
 
     # Terminals
+    alacritty
     ghostty
+    ghostty-bash-completion
+    ghostty-fish-completion
+    ghostty-kio
+    ghostty-shell-integration
     ghostty-terminfo
     kitty
+    kitty-doc
+    kitty-shell-integration
     kitty-terminfo
     terminator
 
