@@ -34,6 +34,16 @@ DESKTOP_PACKAGES=(
     # Fave prompt
     starship
 
+    # Terminals
+    ghostty
+    ghostty-terminfo
+    kitty
+    kitty-terminfo
+    terminator
+
+    # Other stuff
+    lazyssh
+
     # Programming stuff I find handy
     code
     gh
