@@ -157,6 +157,6 @@ jobs:
 
       - name: Upload Release Assets
         if: ${{ github.event_name != 'workflow_dispatch' }}
-        uses: softprops/action-gh-release@v3.0.1
+        uses: softprops/action-gh-release@v3.0.2
         with:
           files: ${{ steps.build.outputs.output-directory }}/iso/*
