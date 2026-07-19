@@ -99,6 +99,12 @@ build $target_image=image_name $tag=default_tag:
     set -euox pipefail
 
     BUILD_ARGS=()
+    # Freizzite: parameterize the base image so one repo builds multiple
+    # variants. Defaults come from image-template.env (dotenv-loaded); CI
+    # overrides them per matrix entry via the environment.
+    BUILD_ARGS+=("--build-arg" "BASE_IMAGE=${BASE_IMAGE:-bazzite-dx-nvidia}")
+    BUILD_ARGS+=("--build-arg" "BASE_TAG=${BASE_TAG:-stable}")
+    BUILD_ARGS+=("--build-arg" "BUILD_VARIANT=${BUILD_VARIANT:-${BASE_IMAGE:-bazzite-dx-nvidia}}")
     LABELS=()
     if [[ -z "$(git status -s)" ]]; then
         GIT_SHA=$(git rev-parse --short HEAD)
