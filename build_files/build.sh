@@ -2,7 +2,7 @@
 
 set -ouex pipefail
 
-BUILD_VARIANT="${BUILD_VARIANT:-bazzite-nvidia-open}"
+BUILD_VARIANT="${BUILD_VARIANT:-bazzite-dx-nvidia}"
 echo "Building variant: ${BUILD_VARIANT}"
 
 # Workaround for bootc-image-builder ISO depsolve bug
