@@ -1,6 +1,8 @@
-ARG BASE_IMAGE=bazzite-nvidia-open
+# Base image is parameterized so one repo can build multiple variants
+# (see the matrix in .github/workflows/build.yml and image-template.env)
+ARG BASE_IMAGE=bazzite-dx-nvidia
 ARG BASE_TAG=stable
-ARG BUILD_VARIANT=bazzite-nvidia-open
+ARG BUILD_VARIANT=bazzite-dx-nvidia
 
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
@@ -11,14 +13,14 @@ COPY system_files /system_files
 FROM ghcr.io/ublue-os/${BASE_IMAGE}:${BASE_TAG}
 ARG BUILD_VARIANT
 ENV BUILD_VARIANT=${BUILD_VARIANT}
-
 ## Other possible base images include:
-# FROM ghcr.io/ublue-os/bazzite:latest
-# FROM ghcr.io/ublue-os/bluefin-nvidia:stable
+# FROM ghcr.io/ublue-os/bazzite:testing
+# FROM ghcr.io/ublue-os/aurora:stable
+# FROM ghcr.io/ublue-os/bluefin-nvidia-open:stable
 #
 # ... and so on, here are more base images
 # Universal Blue Images: https://github.com/orgs/ublue-os/packages
-# Fedora base image: quay.io/fedora/fedora-bootc:41
+# Fedora base image: quay.io/fedora/fedora-bootc:44
 # CentOS base images: quay.io/centos-bootc/centos-bootc:stream10
 
 ### [IM]MUTABLE /opt

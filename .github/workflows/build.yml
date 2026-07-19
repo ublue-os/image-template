@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+  # Freizzite: build after pre-commit passes on main instead of on raw push
   workflow_run:
     workflows: ["pre-commit"]
     types: [completed]
@@ -17,12 +18,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_DESC: "Freizzite Customized Bazzite Image"
-  IMAGE_KEYWORDS: "bootc,ublue,universal-blue,bazzite"
-  IMAGE_LOGO_URL: "https://avatars.githubusercontent.com/u/19813?s=200&v=4" # Put your own image here for a fancy profile on https://artifacthub.io/!
-  IMAGE_NAME: "${{ github.event.repository.name }}" # output image name, usually same as repo name
-  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}" # do not edit
-  DEFAULT_TAG: "latest"
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
@@ -36,136 +32,116 @@ jobs:
     if: >
       github.event_name != 'workflow_run' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
+    # Freizzite: build multiple variants from one repo. IMAGE_NAME/BASE_IMAGE/
+    # BUILD_VARIANT override the image-template.env defaults (env beats dotenv
+    # in the Justfile recipes).
     strategy:
+      fail-fast: false
       matrix:
         variant:
-          # - base: bazzite-nvidia-open
-          #   name: freizzite-nvidia-open
-          # - base: bazzite-nvidia
-          #   name: freizzite-nvidia
-          - base: bazzite-dx-nvidia
-            name: freizzite-dx-nvidia
-          # - base: bazzite
-          #   name: freizzite
-          - base: bazzite-deck
-            name: freizzite-deck
+          # - name: freizzite-nvidia-open
+          #   base: bazzite-nvidia-open
+          # - name: freizzite-nvidia
+          #   base: bazzite-nvidia
+          - name: freizzite-dx-nvidia
+            base: bazzite-dx-nvidia
+          # - name: freizzite
+          #   base: bazzite
+          - name: freizzite-deck
+            base: bazzite-deck
+    env:
+      IMAGE_NAME: ${{ matrix.variant.name }}
+      BASE_IMAGE: ${{ matrix.variant.base }}
+      BUILD_VARIANT: ${{ matrix.variant.base }}
+
     permissions:
       contents: read
       packages: write
       id-token: write
 
     steps:
-      - name: Prepare environment
-        run: |
-          # Lowercase the image uri
-          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
-          echo "IMAGE_NAME=${{ matrix.variant.name }}" >> ${GITHUB_ENV}
-          echo "BASE_IMAGE=${{ matrix.variant.base }}" >> ${GITHUB_ENV}
-          echo "BUILD_VARIANT=${{ matrix.variant.base }}" >> ${GITHUB_ENV}
-
       # These stage versions are pinned by https://github.com/renovatebot/renovate
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      # This is optional, but if you see that your builds are way too big for the runners, you can enable this by uncommenting the following lines:
       - name: Maximize build space
         uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
 
-      - name: Get current date
-        id: date
+      - name: Install just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 #v4.0.0
+
+      - name: Check Just Syntax
+        shell: bash
         run: |
-          # This generates a timestamp like what is defined on the ArtifactHub documentation
-          # E.G: 2022-02-08T15:38:15Z'
-          # https://artifacthub.io/docs/topics/repositories/container-images/
-          # https://linux.die.net/man/1/date
-          echo "date=$(date -u +%Y\-%m\-%d\T%H\:%M\:%S\Z)" >> $GITHUB_OUTPUT
+          just check
 
-      - name: Compute image tags
-        id: taggen
-        env:
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          BASE_IMAGE: ${{ env.BASE_IMAGE }}
-          BASE_TAG: ${{ env.BASE_TAG || 'stable' }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          EVENT_NAME: ${{ github.event_name }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image Name
+        id: image-name
         run: |
-          set -euo pipefail
-          pip install requests
-          DATE=$(date -u +%Y%m%d)
-          export DATE
-          BASE_IMAGE=${BASE_IMAGE:-bazzite-nvidia-open}
-          BASE_TAG=${BASE_TAG:-stable}
-          export BASE_IMAGE BASE_TAG
+          IMAGE_NAME=$(just image_name)
 
-          TAGS=$(python3 build_files/compute_tags.py)
-          echo "tags<<EOF" >> $GITHUB_OUTPUT
-          printf '%s\n' "$TAGS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
 
-      # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
-      # The metadata by itself is not going to do anything, you choose if you want your image to be on ArtifactHub or not.
-      - name: Image Metadata
-        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
-        id: metadata
-        with:
-          tags: ${{ steps.taggen.outputs.tags }}
-          labels: |
-            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/${{ github.sha }}/README.md
-            org.opencontainers.image.created=${{ steps.date.outputs.date }}
-            org.opencontainers.image.description=${{ env.IMAGE_DESC }}
-            org.opencontainers.image.documentation=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/${{ github.sha }}/README.md
-            org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/blob/${{ github.sha }}/Containerfile
-            org.opencontainers.image.title=${{ env.IMAGE_NAME }}
-            org.opencontainers.image.url=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/tree/${{ github.sha }}
-            org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.version=${{ env.DEFAULT_TAG }}.{{date 'YYYYMMDD'}}
-            io.artifacthub.package.deprecated=false
-            io.artifacthub.package.keywords=${{ env.IMAGE_KEYWORDS }}
-            io.artifacthub.package.license=Apache-2.0
-            io.artifacthub.package.logo-url=${{ env.IMAGE_LOGO_URL }}
-            io.artifacthub.package.prerelease=false
-            containers.bootc=1
-          sep-tags: " "
-          sep-annotations: " "
+      - name: Default Tag
+        id: gen-default-tag
+        run: |
+          DEFAULT_TAG=$(just generate-default-tag)
 
+          echo "DEFAULT_TAG=${DEFAULT_TAG}" >> $GITHUB_ENV
+
+      - name: Prepare environment
+        run: |
+          # Lowercase the image uri https://github.com/macbre/push-to-ghcr/issues/12
+          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+
+      # This actually builds the container image
       - name: Build Image
-        id: build_image
-        uses: redhat-actions/buildah-build@7a95fa7ee0f02d552a32753e7414641a04307056 # v2
-        with:
-          containerfiles: |
-            ./Containerfile
-          build-args: |
-            BASE_IMAGE=${{ env.BASE_IMAGE }}
-            BUILD_VARIANT=${{ env.BUILD_VARIANT }}
-          image: ${{ env.IMAGE_NAME }}
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
-          oci: false
+        id: build-image
+        run: |
+          sudo -E $(command -v just) build \
+            ${IMAGE_NAME} \
+            ${DEFAULT_TAG}
 
-      # Rechunk is a script that we use on Universal Blue to make sure there isnt a single huge layer when your image gets published.
-      # This does not make your image faster to download, just provides better resumability and fixes a few errors.
-      # Documentation for Rechunk is provided on their github repository at https://github.com/hhd-dev/rechunk
-      # You can enable it by uncommenting the following lines:
-      # - name: Run Rechunker
-      #   id: rechunk
-      #   uses: ublue-os/legacy-rechunk@a925083d9af7cb04b3e2a6e8c01bfa495f38b710 # v1.0.0
-      #   with:
-      #     rechunk: 'ghcr.io/ublue-os/legacy-rechunk:v1.0.0-x86_64'
-      #     ref: "localhost/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
-      #     prev-ref: "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
-      #     skip_compression: true
-      #     version: ${{ env.CENTOS_VERSION }}
-      #     labels: ${{ steps.metadata.outputs.labels }} # Rechunk strips out all the labels during build, this needs to be reapplied here with newline separator
+      # This is optional, this provides smaller delta updates
+      - name: Rechunk with rpm-ostree
+        id: rechunk
+        run: |
+          sudo -E $(command -v just) ostree-rechunk \
+            ${IMAGE_NAME} \
+            ${DEFAULT_TAG}
 
-      # This is necessary so that the podman socket can find the rechunked image on its storage
-      # - name: Load in podman and tag
-      #   run: |
-      #     IMAGE=$(podman pull ${{ steps.rechunk.outputs.ref }})
-      #     sudo rm -rf ${{ steps.rechunk.outputs.output }}
-      #     for tag in ${{ steps.metadata.outputs.tags }}; do
-      #       podman tag $IMAGE ${{ env.IMAGE_NAME }}:$tag
-      #     done
+      # If you are feeling adventurous, use the new distro agnostic rechunker
+      # https://github.com/coreos/chunkah
+      # You can delete the Rechunk with rpm-ostree portion then if you use this
+      #- name: Rechunk with Chunkah
+      #  id: rechunk
+      #  run: |
+      #    sudo -E $(command -v just) rechunk \
+      #      ${IMAGE_NAME} \
+      #      ${DEFAULT_TAG}
+
+      - name: Generate Build Tags
+        id: gen-build-tags
+        run: |
+          alias_tags="$(just generate-build-tags \
+                        ${IMAGE_NAME} \
+                        ${DEFAULT_TAG})"
+
+          echo "Tags for this Action..."
+          echo "${alias_tags}"
+          echo "alias_tags=${alias_tags}" >> $GITHUB_OUTPUT
+
+      - name: Tag Image
+        id: tag-images
+        env:
+          ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
+        run: |
+          sudo -E $(command -v just) tag-images \
+            "${IMAGE_NAME}" \
+            "${DEFAULT_TAG}" \
+            "${ALIAS_TAGS}"
 
       # These `if` statements are so that pull requests for your custom images do not make it publish any packages under your name without you knowing
       # They also check if the runner is on the default branch so that things like the merge queue (if you enable it), are going to work
@@ -177,25 +153,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Wrapped in wretry.action so transient GHCR errors (e.g. 504 Gateway
-      # Timeout mid-push) are retried instead of failing the whole build.
       - name: Push To GHCR
-        uses: Wandalen/wretry.action@e68c23e6309f2871ca8ae4763e7629b9c258e1ea # v3.8.0
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-        id: push
+        id: push-image
         env:
-          REGISTRY_USER: ${{ github.actor }}
-          REGISTRY_PASSWORD: ${{ github.token }}
-        with:
-          action: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2
-          attempt_limit: 3
-          attempt_delay: 30000
-          with: |
-            registry: ${{ env.IMAGE_REGISTRY }}
-            image: ${{ env.IMAGE_NAME }}
-            tags: ${{ steps.metadata.outputs.tags }}
-            username: ${{ env.REGISTRY_USER }}
-            password: ${{ env.REGISTRY_PASSWORD }}
+          ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
+        run: |
+          set -euox pipefail
+          # Freizzite: retry transient GHCR errors (e.g. 504 mid-push) instead
+          # of failing the whole build
+          for tag in ${ALIAS_TAGS}; do
+            for attempt in 1 2 3; do
+              if sudo -E podman push --digestfile=/tmp/digestfile ${IMAGE_NAME}:${tag} ${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}; then
+                break
+              elif [[ "${attempt}" -lt 3 ]]; then
+                echo "Push of ${tag} failed (attempt ${attempt}); retrying in 30s..." >&2
+                sleep 30
+              else
+                exit 1
+              fi
+            done
+          done
+
+          digest=$(< /tmp/digestfile)
+
+          echo "digest=${digest}" >> $GITHUB_OUTPUT
 
       # This section is optional and only needs to be enabled if you plan on distributing
       # your project for others to consume. You will need to create a public and private key
@@ -204,17 +186,16 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        # https://github.com/containers/container-libs/issues/388
         with:
           cosign-release: 'v2.6.3'
 
       - name: Sign container image
+        id: sign-image
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-        run: |
-          IMAGE_FULL="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}"
-          for tag in ${{ steps.metadata.outputs.tags }}; do
-            cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE_FULL:$tag
-          done
         env:
-          TAGS: ${{ steps.push.outputs.digest }}
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          DIGEST: ${{ steps.push-image.outputs.digest }}
+        run: |
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}

@@ -46,3 +46,26 @@ If you want to swap back.
 * Temporary: reboot and pick the previous version
 * Permanent: `sudo bootc switch ghcr.io/ublue-os/bazzite-something`
   (Refer to saved `rpm-ostree status` info from install)
+
+## Local development
+
+The build pipeline follows upstream
+[image-template](https://github.com/ublue-os/image-template)'s just-based
+flow. Defaults (image name, base image, variant) come from
+`image-template.env`; CI overrides them per matrix entry in
+`.github/workflows/build.yml`.
+
+* `just build` — build the primary variant
+  (`localhost/freizzite-dx-nvidia:latest`)
+* `IMAGE_NAME=freizzite-deck BASE_IMAGE=bazzite-deck BUILD_VARIANT=bazzite-deck just build`
+  — build the deck variant
+* `sudo just build` then
+  `sudo bootc switch --transport containers-storage localhost/freizzite-dx-nvidia:latest`
+  — test-boot a local build (build as root so the image lands in root's
+  containers-storage)
+* `just build-iso` — build the dx-nvidia ISO locally
+  (`disk_config/iso.toml`); the deck ISO uses `disk_config/iso-deck.toml`
+* `just check` / `just lint` / `pre-commit run --all-files` — lint
+
+Images are tagged by upstream's `just generate-build-tags`: `latest`,
+`YYYYMMDD`, `latest-YYYYMMDD`, plus `-<gitsha>` variants of each.
