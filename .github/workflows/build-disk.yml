@@ -2,14 +2,10 @@
 name: Build disk images
 
 on:
-#  workflow_run:
-#    workflows: ["Build container image"]
-#    types: [completed]
-#    branches: [main]
   workflow_dispatch:
     inputs:
-      upload-to-webdav:
-        description: "Upload to WebDAV"
+      upload-to-s3:
+        description: "Upload to S3"
         required: false
         default: false
         type: boolean
@@ -19,24 +15,17 @@ on:
         options:
           - amd64
           - arm64
-#  pull_request:
-#    branches:
-#      - main
-#  release:
-#    types: [published]
-#  push:
-#    branches:
-#      - main
-#    paths:
-#      - "./disk_config/disk.toml"
-#      - "./disk_config/iso-nvidia-open.toml"
-#      - "./disk_config/iso.toml"
-#      - "./disk_config/iso-deck.toml"
-#      - "./.github/workflows/build-disk.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - './disk_config/disk.toml'
+      - './disk_config/iso.toml'
+      - './.github/workflows/build-disk.yml'
 
 env:
   IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
-  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}" # do not edit
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
   DEFAULT_TAG: "latest"
   BIB_IMAGE: "quay.io/centos-bootc/bootc-image-builder:latest"
 
@@ -48,24 +37,10 @@ jobs:
   build:
     name: Build disk images
     runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
-    # Only run if not triggered by workflow_run, OR if workflow_run was successful
-    if: >
-      github.event_name != 'workflow_run' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     strategy:
       fail-fast: false
       matrix:
-        variant:
-          - base: bazzite-nvidia-open
-            name: freizzite-nvidia-open
-            iso-config: ./disk_config/iso-nvidia-open.toml
-          - base: bazzite
-            name: freizzite
-            iso-config: ./disk_config/iso.toml
-          - base: bazzite-deck
-            name: freizzite-deck
-            iso-config: ./disk_config/iso-deck.toml
-        disk-type: ["anaconda-iso"] # qcow2 disabled until disk space issues are resolved
+        disk-type: ["qcow2", "anaconda-iso"]
     permissions:
       contents: read
       packages: read
@@ -80,7 +55,7 @@ jobs:
           DISK_TYPE=$(echo "${{ matrix.disk-type }}" | tr ' ' '-')
           # Lowercase the image uri
           echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
-          echo "IMAGE_NAME=${{ matrix.variant.name }}" >> ${GITHUB_ENV}
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
           echo "DISK_TYPE=${DISK_TYPE}" >> ${GITHUB_ENV}
           echo "USER_UID=${USER_UID}" >> ${GITHUB_ENV}
           echo "USER_GID=${USER_GID}" >> ${GITHUB_ENV}
@@ -100,49 +75,18 @@ jobs:
           remove-codeql: true
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      # Attempt to work around occassional timing issue of this running before containers are fully ready
-      - name: Pre-pull container image
-        run: |
-          sudo podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }} || sleep 5m
-
-      - name: Build iso disk images
+      - name: Build disk images
         id: build
-        uses: osbuild/bootc-image-builder-action@30960621b85c9e76c653082f9ef4cab5a10210d5 # main
+        uses: osbuild/bootc-image-builder-action@8661cd3832544ad68c12dcde8681b13ab0f56a8d # main
         with:
           builder-image: ${{ env.BIB_IMAGE }}
-          config-file: ${{ matrix.disk-type == 'anaconda-iso' && matrix.variant.iso-config || './disk_config/disk.toml' }}
+          config-file: ${{ matrix.disk-type == 'anaconda-iso' && './disk_config/iso.toml' || './disk_config/disk.toml' }}
           image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
           chown: ${{ env.USER_UID }}:${{ env.USER_GID }}
           types: ${{ matrix.disk-type }}
-          additional-args: --rootfs btrfs --use-librepo=True
-
-      - name: Rename ISO to variant name
-        if: matrix.disk-type == 'anaconda-iso'
-        run: |
-          mkdir -p ${{ steps.build.outputs.output-directory }}/iso
-          mv ${{ steps.build.outputs.output-directory }}/bootiso/install.iso \
-             ${{ steps.build.outputs.output-directory }}/iso/${{ env.IMAGE_NAME }}.iso
-
-      - name: Rename manifest to variant name
-        if: matrix.disk-type == 'anaconda-iso'
-        run: |
-          mkdir -p ${{ steps.build.outputs.output-directory }}/iso
-          # Find and rename the manifest file to match the ISO naming convention
-          find ${{ steps.build.outputs.output-directory }} -name '*.manifest' -type f \
-            -exec mv {} ${{ steps.build.outputs.output-directory }}/iso/${{ env.IMAGE_NAME }}.iso.manifest \;
-
-      - name: Generate checksums
-        if: matrix.disk-type == 'anaconda-iso'
-        run: |
-          mkdir -p ${{ steps.build.outputs.output-directory }}/iso
-          cd ${{ steps.build.outputs.output-directory }}/iso
-          # Generate SHA256 checksum (both file names)
-          sha256sum *.iso > ${{ env.IMAGE_NAME }}.iso.sha256sum
-          cp ${{ env.IMAGE_NAME }}.iso.sha256sum ${{ env.IMAGE_NAME }}.iso.shasum
-          # Generate MD5 checksum
-          md5sum *.iso > ${{ env.IMAGE_NAME }}.iso.md5sum
+          additional-args: --use-librepo=True
 
       - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
@@ -153,10 +97,19 @@ jobs:
           retention-days: 0
           compression-level: 0
           overwrite: true
-
-
-      - name: Upload Release Assets
-        if: ${{ github.event_name != 'workflow_dispatch' }}
-        uses: softprops/action-gh-release@v3.0.2
-        with:
-          files: ${{ steps.build.outputs.output-directory }}/iso/*
+      
+      - name: Upload to S3
+        if: inputs.upload-to-s3 == true && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          RCLONE_CONFIG_S3_TYPE: s3
+          RCLONE_CONFIG_S3_PROVIDER: ${{ secrets.S3_PROVIDER }}
+          RCLONE_CONFIG_S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          RCLONE_CONFIG_S3_REGION: ${{ secrets.S3_REGION }}
+          RCLONE_CONFIG_S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          SOURCE_DIR: ${{ steps.build.outputs.output-directory }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rclone
+          rclone copy $SOURCE_DIR S3:${{ secrets.S3_BUCKET_NAME }}

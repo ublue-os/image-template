@@ -2,6 +2,3 @@ cosign.key
 _build_*
 output
 _build-*/**
-*~
-*.pyc
-__pycache__
