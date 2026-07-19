@@ -9,6 +9,9 @@ source /ctx/lib-verify.sh
 
 dnf5 -y copr enable atim/starship
 dnf5 -y copr enable scottames/ghostty
+# terra (enabled by default in the bazzite base image) also ships ghostty;
+# so give ghostty copr winning priority.
+dnf5 config-manager setopt 'copr:copr.fedorainfracloud.org:scottames:ghostty.priority=50'
 
 # https://code.visualstudio.com/docs/setup/linux#_rhel-fedora-and-centos-based-distributions
 rpm --import https://packages.microsoft.com/keys/microsoft.asc &&
@@ -37,26 +40,22 @@ DESKTOP_PACKAGES=(
 
     # Terminals
     alacritty
+    # copr build bundles everything; ghostty-* subpackages are terra-only and conflict
     ghostty
-    ghostty-bash-completion
-    ghostty-fish-completion
-    ghostty-kio
-    ghostty-shell-integration
-    ghostty-terminfo
     kitty
     kitty-doc
     kitty-shell-integration
     kitty-terminfo
     terminator
 
-    # Other stuff
+    # Other stuff (terra)
     lazyssh
 
     # Programming stuff I find handy
     code
     gh
     git-filter-repo
-    git-koji
+    git-koji # terra
     git-lfs
 #    git-subtree
     jq
@@ -88,7 +87,7 @@ DESKTOP_PACKAGES=(
 #    edk2-ovmf
 #    guestfs-tools
 
-    # Try zed out
+    # Try zed out (terra)
 #    zed
 
     # Handy tools
@@ -99,7 +98,7 @@ DESKTOP_PACKAGES=(
     netcat
     rclone
 
-    # Prefer "native" over flathub so Rich Presence works better
+    # Prefer "native" over flathub so Rich Presence works better (terra)
     vesktop
     discord
     discord-canary
