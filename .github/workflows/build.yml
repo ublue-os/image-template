@@ -4,13 +4,17 @@ on:
   pull_request:
     branches:
       - main
+  # Freizzite: build after pre-commit passes on main instead of on raw push
+  workflow_run:
+    workflows: ["pre-commit"]
+    types: [completed]
+    branches: [main]
   schedule:
-    - cron: '05 10 * * *'  # 10:05am UTC everyday
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**/README.md'
+    - cron: "23 15,22 * * *" # 3:33pm US/Pacific; convenient times for me
+      timezone: "America/Los_Angeles"
+    - cron: "29 07 * * SAT,SUN" # Weekend Mornings US/Pacific
+      timezone: "America/Los_Angeles"
+    - cron: "40 5 * * 1" # 5:40 utc monday; 1h after bazzite weekly
   workflow_dispatch:
 
 env:
@@ -24,6 +28,32 @@ jobs:
   build_push:
     name: Build and push image
     runs-on: ubuntu-24.04
+    # Only run if not triggered by workflow_run, OR if workflow_run was successful
+    if: >
+      github.event_name != 'workflow_run' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
+    # Freizzite: build multiple variants from one repo. IMAGE_NAME/BASE_IMAGE/
+    # BUILD_VARIANT override the image-template.env defaults (env beats dotenv
+    # in the Justfile recipes).
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          # - name: freizzite-nvidia-open
+          #   base: bazzite-nvidia-open
+          # - name: freizzite-nvidia
+          #   base: bazzite-nvidia
+          - name: freizzite-dx-nvidia
+            base: bazzite-dx-nvidia
+          # - name: freizzite
+          #   base: bazzite
+          - name: freizzite-deck
+            base: bazzite-deck
+    env:
+      IMAGE_NAME: ${{ matrix.variant.name }}
+      BASE_IMAGE: ${{ matrix.variant.base }}
+      BUILD_VARIANT: ${{ matrix.variant.base }}
 
     permissions:
       contents: read
@@ -130,8 +160,19 @@ jobs:
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
         run: |
           set -euox pipefail
+          # Freizzite: retry transient GHCR errors (e.g. 504 mid-push) instead
+          # of failing the whole build
           for tag in ${ALIAS_TAGS}; do
-            sudo -E podman push --digestfile=/tmp/digestfile ${IMAGE_NAME}:${tag} ${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}
+            for attempt in 1 2 3; do
+              if sudo -E podman push --digestfile=/tmp/digestfile ${IMAGE_NAME}:${tag} ${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}; then
+                break
+              elif [[ "${attempt}" -lt 3 ]]; then
+                echo "Push of ${tag} failed (attempt ${attempt}); retrying in 30s..." >&2
+                sleep 30
+              else
+                exit 1
+              fi
+            done
           done
 
           digest=$(< /tmp/digestfile)
