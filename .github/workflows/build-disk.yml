@@ -15,16 +15,11 @@ on:
         options:
           - amd64
           - arm64
-  pull_request:
-    branches:
-      - main
-    paths:
-      - './disk_config/disk.toml'
-      - './disk_config/iso.toml'
-      - './.github/workflows/build-disk.yml'
+  # Freizzite: PR/push triggers intentionally disabled — disk builds consume
+  # the published :latest images and are run on demand via dispatch only.
 
 env:
-  IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
+  IMAGE_NAME: ${{ github.event.repository.name }} # overridden per variant in Prepare environment
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
   DEFAULT_TAG: "latest"
   BIB_IMAGE: "quay.io/centos-bootc/bootc-image-builder:latest"
@@ -40,7 +35,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        disk-type: ["qcow2", "anaconda-iso"]
+        # Freizzite: one ISO per published variant
+        variant:
+          - name: freizzite-dx-nvidia
+            iso-config: ./disk_config/iso.toml
+          - name: freizzite-deck
+            iso-config: ./disk_config/iso-deck.toml
+        # qcow2 disabled until runner disk space issues are resolved
+        # (re-add "qcow2" to restore upstream behavior)
+        disk-type: ["anaconda-iso"]
     permissions:
       contents: read
       packages: read
@@ -55,7 +58,8 @@ jobs:
           DISK_TYPE=$(echo "${{ matrix.disk-type }}" | tr ' ' '-')
           # Lowercase the image uri
           echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
-          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+          # Freizzite: image name comes from the variant matrix
+          echo "IMAGE_NAME=${{ matrix.variant.name }}" >> ${GITHUB_ENV}
           echo "DISK_TYPE=${DISK_TYPE}" >> ${GITHUB_ENV}
           echo "USER_UID=${USER_UID}" >> ${GITHUB_ENV}
           echo "USER_GID=${USER_GID}" >> ${GITHUB_ENV}
@@ -77,27 +81,63 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
+      # Freizzite: work around occasional timing issue of this running before
+      # containers are fully ready
+      - name: Pre-pull container image
+        run: |
+          sudo podman pull ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }} || sleep 5m
+
       - name: Build disk images
         id: build
         uses: osbuild/bootc-image-builder-action@8661cd3832544ad68c12dcde8681b13ab0f56a8d # main
         with:
           builder-image: ${{ env.BIB_IMAGE }}
-          config-file: ${{ matrix.disk-type == 'anaconda-iso' && './disk_config/iso.toml' || './disk_config/disk.toml' }}
+          config-file: ${{ matrix.disk-type == 'anaconda-iso' && matrix.variant.iso-config || './disk_config/disk.toml' }}
           image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
           chown: ${{ env.USER_UID }}:${{ env.USER_GID }}
           types: ${{ matrix.disk-type }}
-          additional-args: --use-librepo=True
+          additional-args: --rootfs btrfs --use-librepo=True
+
+      # Freizzite: name artifacts after the variant so multiple ISOs can
+      # coexist in one release/artifact listing
+      - name: Rename ISO to variant name
+        if: matrix.disk-type == 'anaconda-iso'
+        run: |
+          mkdir -p ${{ steps.build.outputs.output-directory }}/iso
+          mv ${{ steps.build.outputs.output-directory }}/bootiso/install.iso \
+             ${{ steps.build.outputs.output-directory }}/iso/${{ env.IMAGE_NAME }}.iso
+
+      - name: Rename manifest to variant name
+        if: matrix.disk-type == 'anaconda-iso'
+        run: |
+          mkdir -p ${{ steps.build.outputs.output-directory }}/iso
+          # Find and rename the manifest file to match the ISO naming convention
+          find ${{ steps.build.outputs.output-directory }} -name '*.manifest' -type f \
+            -exec mv {} ${{ steps.build.outputs.output-directory }}/iso/${{ env.IMAGE_NAME }}.iso.manifest \;
+
+      - name: Generate checksums
+        if: matrix.disk-type == 'anaconda-iso'
+        run: |
+          mkdir -p ${{ steps.build.outputs.output-directory }}/iso
+          cd ${{ steps.build.outputs.output-directory }}/iso
+          # Generate SHA256 checksum (both file names)
+          sha256sum *.iso > ${{ env.IMAGE_NAME }}.iso.sha256sum
+          cp ${{ env.IMAGE_NAME }}.iso.sha256sum ${{ env.IMAGE_NAME }}.iso.shasum
+          # Generate MD5 checksum
+          md5sum *.iso > ${{ env.IMAGE_NAME }}.iso.md5sum
 
       - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          # Freizzite: name per variant so matrix jobs don't clobber each other
+          name: ${{ matrix.variant.name }}-${{ matrix.disk-type }}
           path: ${{ steps.build.outputs.output-directory }}
           if-no-files-found: error
           retention-days: 0
           compression-level: 0
           overwrite: true
-      
+
       - name: Upload to S3
         if: inputs.upload-to-s3 == true && github.event_name != 'pull_request'
         shell: bash
