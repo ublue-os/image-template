@@ -105,10 +105,12 @@ jobs:
             ${DEFAULT_TAG}
 
       # This is optional, this provides smaller delta updates
+      # Freizzite: seeded variant reuses the previous published image's chunk
+      # layout so unchanged content keeps identical layer digests
       - name: Rechunk with rpm-ostree
         id: rechunk
         run: |
-          sudo -E $(command -v just) ostree-rechunk \
+          sudo -E $(command -v just) ostree-rechunk-seeded \
             ${IMAGE_NAME} \
             ${DEFAULT_TAG}
 

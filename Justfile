@@ -182,6 +182,58 @@ ostree-rechunk $target_image=image_name $tag=default_tag:
       --from "localhost/${target_image}:${tag}" \
       --output containers-storage:"localhost/${target_image}:${tag}"
 
+# Freizzite: like ostree-rechunk, but seeds the previously published chunked
+# image so unchanged content keeps identical layer digests across builds,
+# shrinking bootc upgrade downloads. build-chunked-oci reuses the chunk
+# layout of whatever chunked image it finds at the output ref. Falls back to
+# a plain rechunk when no previous image can be pulled (first build of a
+# variant, registry hiccup).
+
+# Rechunk seeded with the previously published image (smaller update deltas)
+ostree-rechunk-seeded $target_image=image_name $tag=default_tag:
+    #!/usr/bin/env bash
+
+    set -xeuo pipefail
+
+    # TODO: This is the only blocker for rootless CI
+    # https://github.com/coreos/rpm-ostree/issues/5346
+    if [[ ! "${UID}" -eq "0" ]]; then
+      echo "This needs to run as root."
+      exit 1
+    fi
+
+    FROM_REF="localhost/${target_image}:${tag}"
+    PREV="ghcr.io/{{ repo_organization }}/${target_image}:${tag}"
+    if podman pull "${PREV}"; then
+      # Park the fresh unchunked build under a scratch tag and place the
+      # previous chunked image at the output ref for the chunker to reuse.
+      FROM_REF="localhost/${target_image}:${tag}-unchunked"
+      podman tag "localhost/${target_image}:${tag}" "${FROM_REF}"
+      podman tag "${PREV}" "localhost/${target_image}:${tag}"
+      podman rmi "${PREV}" || true
+    fi
+
+    # You can use your own base image here to avoid pulling fedora-bootc
+    RPM_OSTREE_CHUNKER_IMAGE="quay.io/fedora/fedora-bootc:latest"
+
+    podman run --rm \
+      --pull=newer \
+      --privileged \
+      -v "/var/lib/containers:/var/lib/containers" \
+      --entrypoint /usr/bin/rpm-ostree \
+      "${RPM_OSTREE_CHUNKER_IMAGE}" \
+      compose build-chunked-oci \
+      --max-layers 127 \
+      --format-version=2 \
+      --bootc \
+      --from "${FROM_REF}" \
+      --output containers-storage:"localhost/${target_image}:${tag}"
+
+    # Drop the parked unchunked build (frees runner disk)
+    if [[ "${FROM_REF}" == *"-unchunked" ]]; then
+      podman rmi "${FROM_REF}" || true
+    fi
+
 # Generate Default Tag
 [group('Utility')]
 generate-default-tag $tag=default_tag:
