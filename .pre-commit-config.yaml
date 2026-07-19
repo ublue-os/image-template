@@ -1,0 +1,73 @@
+---
+repos:
+  # Misc checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files # Require LFS for files over 500kB
+      - id: check-executables-have-shebangs # Make sure scripts have ok #! lines
+      - id: check-merge-conflict # Make sure merge conflicts are fixed
+      # - id: check-symlinks # Make sure symlinks have valid targets
+      - id: end-of-file-fixer # Makes sure files end in a newline and only a newline.
+      - id: mixed-line-ending  # Makes sure line-endings are unix style
+        args: [--fix=lf]
+      - id: trailing-whitespace # Trims trailing whitespace
+      - id: check-json
+      - id: pretty-format-json
+        args: [--autofix]
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+
+  # commit style
+  - repo: https://github.com/jorisroovers/gitlint
+    rev: v0.19.1
+    hooks:
+      # CT1=conventional-commits style
+      - id: gitlint
+        args: [--contrib=CT1, --line-length=120, --msg-filename]
+      - id: gitlint-ci
+        args: [--contrib=CT1, --line-length=120, --msg-filename]
+
+  # Linter for markdown
+  # Requires: sudo apt install npm
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.44.0
+    hooks:
+      - id: markdownlint-fix
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+    - id: shellcheck
+      # For legacy projects, optionally uncomment 1 of these:
+      # args: ["--severity=warning"]
+      args: ["--severity=error"]
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.11.0-1
+    hooks:
+    - id: shfmt
+      args: ["--indent=4"]
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.29.0
+    hooks:
+      - id: yamllint
+        args: [--strict, '-d', "{rules: {line-length: {max: 180}}}"]
+
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.15.12
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+        args: [ --fix ]
+      # Run the formatter.
+      - id: ruff-format
+
+  - repo: meta
+    hooks:
+      # - id: check-hooks-apply # Ensures that the configured hooks apply to at least one file in the repository
+      - id: check-useless-excludes # Ensures that exclude directives apply to any file in the repository.
