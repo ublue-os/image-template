@@ -4,7 +4,7 @@
 # publisher. The repositoryID MUST match the repository added in the Artifact
 # Hub control panel for THIS package (oci://ghcr.io/freiheit/freizzite-deck).
 # Docs: https://artifacthub.io/docs/topics/repositories/container-images/
-repositoryID: eb2d1d48-8f86-4d43-a81d-3d443c7a6b8e
+repositoryID: aacc915a-415a-4da6-b5cd-6554f778768e
 owners: # (optional, used to claim repository ownership)
   - name: freiheit
     email: cute.floor1292@freiheit.wtf

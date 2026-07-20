@@ -25,35 +25,69 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_push:
-    name: Build and push image
-    runs-on: ubuntu-24.04
-    # Only run if not triggered by workflow_run, OR if workflow_run was successful
+  # Freizzite: compute the build matrix. Every active variant always builds its
+  # `stable` stream; a `testing` stream is added for a variant only when its
+  # upstream base publishes a :testing tag (probed with buildx imagetools).
+  matrix:
+    name: Determine build matrix
+    runs-on: ubuntu-latest
+    # Mirror build_push: on a workflow_run trigger, only proceed if pre-commit
+    # succeeded. build_push depends on this job, so gating here gates both.
     if: >
       github.event_name != 'workflow_run' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    permissions:
+      contents: read
+    outputs:
+      targets: ${{ steps.gen.outputs.targets }}
+    steps:
+      - name: Compute variant/stream targets
+        id: gen
+        env:
+          # "<freizzite-image> <upstream-base>", one active variant per line.
+          VARIANTS: |
+            freizzite-dx-nvidia bazzite-dx-nvidia
+            freizzite-deck bazzite-deck
+            # freizzite bazzite
+            # freizzite-nvidia bazzite-nvidia
+            # freizzite-nvidia-open bazzite-nvidia-open
+        run: |
+          set -euo pipefail
+          targets=()
+          while read -r name base _; do
+            [[ -z "${name}" || "${name}" == \#* ]] && continue
+            # stable stream always builds
+            targets+=("{\"name\":\"${name}\",\"base\":\"${base}\",\"base_tag\":\"stable\",\"default_tag\":\"latest\",\"stream\":\"stable\"}")
+            # testing stream only when upstream publishes a :testing tag for this base
+            if docker buildx imagetools inspect "ghcr.io/ublue-os/${base}:testing" >/dev/null 2>&1; then
+              echo "ghcr.io/ublue-os/${base}:testing found -> adding testing stream"
+              targets+=("{\"name\":\"${name}\",\"base\":\"${base}\",\"base_tag\":\"testing\",\"default_tag\":\"testing\",\"stream\":\"testing\"}")
+            else
+              echo "ghcr.io/ublue-os/${base}:testing absent -> skipping testing stream"
+            fi
+          done <<< "${VARIANTS}"
+          printf -v joined '%s,' "${targets[@]}"
+          echo "targets=[${joined%,}]" >> "${GITHUB_OUTPUT}"
 
-    # Freizzite: build multiple variants from one repo. IMAGE_NAME/BASE_IMAGE/
-    # BUILD_VARIANT override the image-template.env defaults (env beats dotenv
-    # in the Justfile recipes).
+  build_push:
+    name: ${{ matrix.target.name }} (${{ matrix.target.stream }})
+    needs: matrix
+    runs-on: ubuntu-24.04
+
+    # Freizzite: targets come from the `matrix` job above. IMAGE_NAME/BASE_IMAGE/
+    # BUILD_VARIANT/BASE_TAG/DEFAULT_TAG override the image-template.env defaults
+    # (env beats dotenv in the Justfile recipes). STREAM selects stable/testing.
     strategy:
       fail-fast: false
       matrix:
-        variant:
-          # - name: freizzite-nvidia-open
-          #   base: bazzite-nvidia-open
-          # - name: freizzite-nvidia
-          #   base: bazzite-nvidia
-          - name: freizzite-dx-nvidia
-            base: bazzite-dx-nvidia
-          # - name: freizzite
-          #   base: bazzite
-          - name: freizzite-deck
-            base: bazzite-deck
+        target: ${{ fromJSON(needs.matrix.outputs.targets) }}
     env:
-      IMAGE_NAME: ${{ matrix.variant.name }}
-      BASE_IMAGE: ${{ matrix.variant.base }}
-      BUILD_VARIANT: ${{ matrix.variant.base }}
+      IMAGE_NAME: ${{ matrix.target.name }}
+      BASE_IMAGE: ${{ matrix.target.base }}
+      BUILD_VARIANT: ${{ matrix.target.base }}
+      BASE_TAG: ${{ matrix.target.base_tag }}
+      DEFAULT_TAG: ${{ matrix.target.default_tag }}
+      STREAM: ${{ matrix.target.stream }}
 
     permissions:
       contents: read
@@ -131,6 +165,18 @@ jobs:
                         ${IMAGE_NAME} \
                         ${DEFAULT_TAG})"
 
+          # Freizzite: the testing stream must not publish the stream-agnostic
+          # tags (bare YYYYMMDD / YYYYMMDD-<sha>) that generate-build-tags emits,
+          # or they would collide with the stable stream on the same commit.
+          # Keep only testing-prefixed tags for that stream.
+          if [[ "${STREAM:-stable}" == "testing" ]]; then
+            filtered=()
+            for t in ${alias_tags}; do
+              [[ "${t}" == testing* ]] && filtered+=("${t}")
+            done
+            alias_tags="${filtered[*]}"
+          fi
+
           echo "Tags for this Action..."
           echo "${alias_tags}"
           echo "alias_tags=${alias_tags}" >> $GITHUB_OUTPUT
@@ -207,14 +253,14 @@ jobs:
       # automatically (no manual control-panel verification step). One metadata
       # file per package lives at artifacthub/<image-name>.yml; variants without
       # one (e.g. before their ArtifactHub repo/ID exists) are skipped. oras
-      # reuses the ghcr credentials from the docker login step above.
-      # https://artifacthub.io/docs/topics/repositories/container-images/
+      # reuses the ghcr credentials from the docker login step above. Runs only
+      # on the stable stream — the metadata is per package, not per tag.
       - name: Install ORAS
         uses: oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d # v2.0.1
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && matrix.target.stream == 'stable'
 
       - name: Publish Artifact Hub repository metadata
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && matrix.target.stream == 'stable'
         run: |
           set -euo pipefail
           meta="artifacthub/${IMAGE_NAME}.yml"
