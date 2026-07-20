@@ -1,0 +1,10 @@
+# Per-variant Artifact Hub repository metadata (Freizzite).
+# One file per ghcr package, named artifacthub/<image-name>.yml. CI pushes it
+# to the `<image>:artifacthub.io` OCI tag to claim ownership / verified
+# publisher. The repositoryID MUST match the repository added in the Artifact
+# Hub control panel for THIS package (oci://ghcr.io/freiheit/freizzite-dx-nvidia).
+# Docs: https://artifacthub.io/docs/topics/repositories/container-images/
+repositoryID: 88574f92-7c7e-4f50-ab04-66a10e25281b
+owners: # (optional, used to claim repository ownership)
+  - name: freiheit
+    email: cute.floor1292@freiheit.wtf

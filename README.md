@@ -2,7 +2,8 @@
 
 [![Build container image](https://github.com/freiheit/freizzite/actions/workflows/build.yml/badge.svg)](https://github.com/freiheit/freizzite/actions/workflows/build.yml)
 [![pre-commit checks](https://github.com/freiheit/freizzite/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/freiheit/freizzite/actions/workflows/pre-commit.yml)
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/freizzite)](https://artifacthub.io/packages/container/freizzite/freizzite)
+[![Artifact Hub freizzite-deck](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/freizzite-deck)](https://artifacthub.io/packages/search?repo=freizzite-deck)
+[![Artifact Hub freizzite-dx-nvidia](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/freizzite-dx-nvidia)](https://artifacthub.io/packages/search?repo=freizzite-dx-nvidia)
 
 This is a freiheit clone of
 [bazzite](https://github.com/ublue-os/bazzite)
