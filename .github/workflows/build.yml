@@ -201,3 +201,28 @@ jobs:
           DIGEST: ${{ steps.push-image.outputs.digest }}
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
+
+      # Freizzite: publish the per-variant Artifact Hub repository-metadata file
+      # to the `artifacthub.io` OCI tag so package ownership is claimed
+      # automatically (no manual control-panel verification step). One metadata
+      # file per package lives at artifacthub/<image-name>.yml; variants without
+      # one (e.g. before their ArtifactHub repo/ID exists) are skipped. oras
+      # reuses the ghcr credentials from the docker login step above.
+      # https://artifacthub.io/docs/topics/repositories/container-images/
+      - name: Install ORAS
+        uses: oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d # v2.0.1
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+
+      - name: Publish Artifact Hub repository metadata
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          set -euo pipefail
+          meta="artifacthub/${IMAGE_NAME}.yml"
+          if [[ ! -f "${meta}" ]]; then
+            echo "No Artifact Hub metadata for ${IMAGE_NAME} (${meta}); skipping."
+            exit 0
+          fi
+          oras push \
+            "${IMAGE_REGISTRY}/${IMAGE_NAME}:artifacthub.io" \
+            --config /dev/null:application/vnd.cncf.artifacthub.config.v1+yaml \
+            "${meta}:application/vnd.cncf.artifacthub.repository-metadata.layer.v1.yaml"
