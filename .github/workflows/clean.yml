@@ -1,0 +1,44 @@
+---
+name: Cleanup Old Images
+on:
+  schedule:
+    - cron: "11 4 * * 0" # ~4am Sunday US/Pacific, clear of the build crons
+      timezone: "America/Los_Angeles"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Log what would be deleted without deleting"
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Prune old ghcr images
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old images
+        uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          packages: freizzite-dx-nvidia,freizzite-deck
+          # exclude-tags overrides every other rule: always keep the current
+          # pointer and the ArtifactHub ownership artifact. cosign signatures
+          # are handled as children of their image, so they follow it.
+          exclude-tags: latest,artifacthub.io
+          # Never delete anything younger than 30 days; beyond that, keep the
+          # 10 newest tagged and 3 newest untagged images and prune the rest.
+          older-than: 30 days
+          keep-n-tagged: 10
+          keep-n-untagged: 3
+          # Sweep stranded cosign/referrer artifacts whose parent is gone.
+          delete-orphaned-images: true
+          # Manual runs default to a no-op preview; the weekly schedule runs live.
+          dry-run: ${{ inputs.dry_run || false }}
