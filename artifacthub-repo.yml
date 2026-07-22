@@ -1,8 +1,8 @@
-# This file is completely optional, but if you want to index your image on https://artifacthub.io/ you can 
+# This file is completely optional, but if you want to index your image on https://artifacthub.io/ you can
 # Sign up and add the Repository ID to the right field. Owners fields are optional.
-# Examples: https://artifacthub.io/packages/search?ts_query_web=ublue&sort=relevance&page=1 
+# Examples: https://artifacthub.io/packages/search?ts_query_web=ublue&sort=relevance&page=1
 
-repositoryID: my-custom-id-here # Fill in with your own credentials 
+repositoryID:
 owners: # (optional, used to claim repository ownership)
-  - name: My Name
-    email: my_email@email.com
+  - name: freiheit
+    email: cute.floor1292@freiheit.wtf

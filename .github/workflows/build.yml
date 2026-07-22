@@ -4,13 +4,15 @@ on:
   pull_request:
     branches:
       - main
+  # Freirora: build after pre-commit passes on main instead of on raw push
+  workflow_run:
+    workflows: ["pre-commit"]
+    types: [completed]
+    branches: [main]
   schedule:
-    - cron: '05 10 * * *'  # 10:05am UTC everyday
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**/README.md'
+    - cron: "0 8 * * *" # 8:00am US/Pacific; before I start work
+      timezone: "America/Los_Angeles"
+    - cron: "0 2 * * TUE" # 2:00 utc tuesday; 1h after aurora weekly
   workflow_dispatch:
 
 env:
@@ -24,6 +26,10 @@ jobs:
   build_push:
     name: Build and push image
     runs-on: ubuntu-24.04
+    # Only run if not triggered by workflow_run, OR if workflow_run was successful
+    if: >
+      github.event_name != 'workflow_run' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     permissions:
       contents: read
@@ -158,4 +164,3 @@ jobs:
           DIGEST: ${{ steps.push-image.outputs.digest }}
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
-
