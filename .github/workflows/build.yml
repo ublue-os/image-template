@@ -44,24 +44,31 @@ jobs:
       - name: Compute variant/stream targets
         id: gen
         env:
-          # "<freizzite-image> <upstream-base>", one active variant per line.
+          # "<freizzite-image>|<upstream-base>|<description>", one active variant
+          # per line. The description becomes IMAGE_DESC for that variant (env
+          # beats dotenv in the Justfile, so no image-template.env change).
           VARIANTS: |
-            freizzite-dx-nvidia bazzite-dx-nvidia
-            freizzite-deck bazzite-deck
-            # freizzite bazzite
-            # freizzite-nvidia bazzite-nvidia
-            # freizzite-nvidia-open bazzite-nvidia-open
+            freizzite-dx-nvidia|bazzite-dx-nvidia|Freizzite - customized Bazzite (dx-nvidia: developer tools + NVIDIA drivers)
+            freizzite-deck|bazzite-deck|Freizzite - customized Bazzite (deck: Steam Deck / handheld)
+            # freizzite|bazzite|Freizzite - customized Bazzite
+            # freizzite-nvidia|bazzite-nvidia|Freizzite - customized Bazzite (NVIDIA drivers)
+            # freizzite-nvidia-open|bazzite-nvidia-open|Freizzite - customized Bazzite (open NVIDIA drivers)
         run: |
           set -euo pipefail
           targets=()
-          while read -r name base _; do
+          while IFS='|' read -r name base desc; do
+            name="${name//[[:space:]]/}"
             [[ -z "${name}" || "${name}" == \#* ]] && continue
+            base="${base//[[:space:]]/}"
+            # trim leading/trailing whitespace from the description
+            desc="${desc#"${desc%%[![:space:]]*}"}"
+            desc="${desc%"${desc##*[![:space:]]}"}"
             # stable stream always builds
-            targets+=("{\"name\":\"${name}\",\"base\":\"${base}\",\"base_tag\":\"stable\",\"default_tag\":\"latest\",\"stream\":\"stable\"}")
+            targets+=("{\"name\":\"${name}\",\"base\":\"${base}\",\"base_tag\":\"stable\",\"default_tag\":\"latest\",\"stream\":\"stable\",\"image_desc\":\"${desc}\"}")
             # testing stream only when upstream publishes a :testing tag for this base
             if docker buildx imagetools inspect "ghcr.io/ublue-os/${base}:testing" >/dev/null 2>&1; then
               echo "ghcr.io/ublue-os/${base}:testing found -> adding testing stream"
-              targets+=("{\"name\":\"${name}\",\"base\":\"${base}\",\"base_tag\":\"testing\",\"default_tag\":\"testing\",\"stream\":\"testing\"}")
+              targets+=("{\"name\":\"${name}\",\"base\":\"${base}\",\"base_tag\":\"testing\",\"default_tag\":\"testing\",\"stream\":\"testing\",\"image_desc\":\"${desc}\"}")
             else
               echo "ghcr.io/ublue-os/${base}:testing absent -> skipping testing stream"
             fi
@@ -75,8 +82,9 @@ jobs:
     runs-on: ubuntu-24.04
 
     # Freizzite: targets come from the `matrix` job above. IMAGE_NAME/BASE_IMAGE/
-    # BUILD_VARIANT/BASE_TAG/DEFAULT_TAG override the image-template.env defaults
-    # (env beats dotenv in the Justfile recipes). STREAM selects stable/testing.
+    # BUILD_VARIANT/BASE_TAG/DEFAULT_TAG/IMAGE_DESC override the image-template.env
+    # defaults (env beats dotenv in the Justfile recipes). STREAM selects
+    # stable/testing.
     strategy:
       fail-fast: false
       matrix:
@@ -88,6 +96,7 @@ jobs:
       BASE_TAG: ${{ matrix.target.base_tag }}
       DEFAULT_TAG: ${{ matrix.target.default_tag }}
       STREAM: ${{ matrix.target.stream }}
+      IMAGE_DESC: ${{ matrix.target.image_desc }}
 
     permissions:
       contents: read
