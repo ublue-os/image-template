@@ -110,7 +110,7 @@ DESKTOP_PACKAGES=(
     bzip3-tools
     gzip
     ncompress
-#    p7zip
+#    7zip
 #    unzip
 #    xz
 #    zip
@@ -133,10 +133,10 @@ dnf -y install --skip-unavailable --enable-repo=terra "${DESKTOP_PACKAGES[@]}"
 systemctl enable "${DESKTOP_SYSTEMCTL[@]}"
 
 # redirect $HOME because starship and 1password/op really like to write cache files under /root/
-HOME=/var/tmp starship completions fish > /etc/fish/completions/starship
+HOME=/var/tmp starship completions fish > /etc/fish/completions/starship.fish
 HOME=/var/tmp starship completions bash > /etc/bash_completion.d/starship
 
-HOME=/var/tmp op --cache=false completion fish > /etc/fish/completions/op
+HOME=/var/tmp op --cache=false completion fish > /etc/fish/completions/op.fish
 HOME=/var/tmp op --cache=false completion bash > /etc/bash_completion.d/op
 
 npm completion > /etc/bash_completion.d/npm

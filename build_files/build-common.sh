@@ -50,7 +50,7 @@ dnf5 -y install --skip-unavailable --skip-broken --enable-repo=terra "${COMMON_P
 
 systemctl enable "${COMMON_SYSTEMCTL[@]}"
 
-tailscale completion fish > /etc/fish/completions/tailscale
+tailscale completion fish > /etc/fish/completions/tailscale.fish
 tailscale completion bash > /etc/bash_completion.d/tailscale
 
 # Fail the build if any requested package didn't actually get installed
