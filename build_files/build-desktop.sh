@@ -35,13 +35,17 @@ DESKTOP_PACKAGES=(
     1password
     1password-cli
 
+    # terminal
+    ghostty
+)
+
+DESKTOP_TERRA_PACKAGES=(
+
     # Fave prompt
     starship
 
     # Terminals
     alacritty
-    # copr build bundles everything; ghostty-* subpackages are terra-only and conflict
-    ghostty
     kitty
     kitty-doc
     kitty-shell-integration
@@ -128,7 +132,8 @@ DESKTOP_SYSTEMCTL=(
     podman.socket
 )
 
-dnf -y install --skip-unavailable --enable-repo=terra "${DESKTOP_PACKAGES[@]}"
+dnf -y install --skip-unavailable "${DESKTOP_PACKAGES[@]}"
+dnf -y install --skip-unavailable --enable-repo=terra "${DESKTOP_TERRA_PACKAGES[@]}"
 
 systemctl enable "${DESKTOP_SYSTEMCTL[@]}"
 
