@@ -44,14 +44,6 @@ DESKTOP_TERRA_PACKAGES=(
     # Fave prompt
     starship
 
-    # Terminals
-    alacritty
-    kitty
-    kitty-doc
-    kitty-shell-integration
-    kitty-terminfo
-    terminator
-
     # Other stuff (terra)
     lazyssh
 

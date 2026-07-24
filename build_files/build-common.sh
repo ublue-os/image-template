@@ -13,7 +13,6 @@ COMMON_PACKAGES=(
     chezmoi-bash-completion
     chezmoi-fish-completion
     droidsansmono-nerd-fonts
-    # easyeffects
     etckeeper
     firacode-nerd-fonts
     firamono-nerd-fonts
@@ -34,7 +33,6 @@ COMMON_PACKAGES=(
     ubuntu-nerd-fonts
     ubuntumono-nerd-fonts
     ubuntusans-nerd-fonts
-    wiremix
 )
 
 # Common services for all variants

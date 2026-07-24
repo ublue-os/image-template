@@ -33,6 +33,7 @@ ENV BUILD_VARIANT=${BUILD_VARIANT}
 ## by the package manager.
 
 RUN rm /opt && mkdir /opt
+RUN rm -rf /usr/local && mkdir -p /usr/local /usr/local/bin /usr/local/etc /usr/local/games /usr/local/include /usr/local/lib /usr/local/man /usr/local/sbin /usr/local/share /usr/local/src
 
 ### MODIFICATIONS
 ## make modifications desired in your image and install packages by modifying the build.sh script
