@@ -89,6 +89,7 @@ PACKAGES=(
     perl-CPAN
     perltidy
     pre-commit
+    ripgrep
     ruff
     ShellCheck
     shfmt
