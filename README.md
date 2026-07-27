@@ -18,7 +18,7 @@ Go look at those 2 places for useful info/links, etc.
 2. Run `sudo bootc status` and `sudo rpm-ostree status` and save the info somewhere.
 3. Optional: `sudo ostree admin pin 0`
 4. Depending which flavor you want, one of these:
-   * `sudo bootc switch --enforce-container-sigpolicy ghcr.io/freiheit/freirora`
+   * `sudo bootc switch --enforce-container-sigpolicy ghcr.io/eric-eisenhart/freirora`
 5. reboot
 
 ... maybe that's supposed to be an `rpm-ostree rebase` instead?
