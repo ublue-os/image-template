@@ -10,24 +10,37 @@ on:
     types: [completed]
     branches: [main]
   schedule:
-    - cron: "23 15,22 * * *" # 3:33pm US/Pacific; convenient times for me
+    # Cheap upstream poll (~40s), hourly through the working day. The `matrix`
+    # job resolves each variant's upstream base digest and drops the targets
+    # that have not moved, so a full build only runs when something changed.
+    # Minute :17 is deliberate -- scheduled runs at :00 queue worst.
+    - cron: "17 11-20 * * *" # hourly, 11am-8pm US/Pacific
       timezone: "America/Los_Angeles"
-    - cron: "29 07 * * SAT,SUN" # Weekend Mornings US/Pacific
-      timezone: "America/Los_Angeles"
-    - cron: "40 5 * * 1" # 5:40 utc monday; 1h after bazzite weekly
+    # Unconditional rebuild of every target, bypassing the gate entirely. It
+    # picks up floating build-time deps the gate cannot see (terra, COPRs, the
+    # Mozilla/1Password/Microsoft repos, ~120 dnf packages), and guarantees a
+    # build even if the gate itself breaks in the "always skip" direction.
+    # Must stay byte-identical to FORCE_CRON in the matrix job.
+    - cron: "40 5 * * 1"
   workflow_dispatch:
 
 env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  # Only PR pushes should cancel. Scheduled polls share this group with
+  # main-branch builds, and builds run 35min-3.5h: cancelling them means the
+  # build never publishes, so the gate keeps seeing the stale label and
+  # rebuilds -- a livelock that burns runner time and ships nothing.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Freizzite: compute the build matrix. Every active variant always builds its
-  # `stable` stream; a `testing` stream is added for a variant only when its
-  # upstream base publishes a :testing tag (probed with buildx imagetools).
+  # Freizzite: compute the build matrix. A `testing` stream is added for a
+  # variant only when its upstream base publishes a :testing tag. On top of
+  # that, each variant/stream target is gated on whether its upstream base has
+  # actually moved since we last published -- see .github/scripts/upstream-gate.sh.
+  # Targets with nothing to do are dropped, so a quiet poll builds nothing.
   matrix:
     name: Determine build matrix
     runs-on: ubuntu-latest
@@ -38,9 +51,14 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     permissions:
       contents: read
+      packages: read
     outputs:
       targets: ${{ steps.gen.outputs.targets }}
+      any: ${{ steps.gen.outputs.any }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
       - name: Compute variant/stream targets
         id: gen
         env:
@@ -53,8 +71,43 @@ jobs:
             # freizzite|bazzite|Freizzite - customized Bazzite
             # freizzite-nvidia|bazzite-nvidia|Freizzite - customized Bazzite (NVIDIA drivers)
             # freizzite-nvidia-open|bazzite-nvidia-open|Freizzite - customized Bazzite (open NVIDIA drivers)
+          LABEL_NS: "io.github.freiheit.build"
+          # Rebuild at least every 3 days even if the base has not moved, so
+          # floating package repos (Firefox, 1Password, vscode, terra, COPRs)
+          # do not go stale.
+          MAX_AGE_HOURS: "72"
+          MIN_INTERVAL_HOURS_STABLE: "0"
+          # bazzite's :testing moves 1-5x/day. Without a floor, gating that
+          # stream would build *more* often than the fixed schedule it
+          # replaces; 4h caps it at 6 builds/day.
+          MIN_INTERVAL_HOURS_TESTING: "4"
+          # Must match the weekly `schedule` cron above exactly.
+          FORCE_CRON: "40 5 * * 1"
+          REG_USER: ${{ github.actor }}
+          REG_PASS: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          HEAD_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
         run: |
           set -euo pipefail
+
+          # A code change, a manual dispatch or a PR must always build every
+          # target; so must the weekly safety-net cron, which bypasses the gate.
+          FORCE=false
+          FORCE_REASON=""
+          case "${EVENT_NAME}" in
+            workflow_dispatch | pull_request | workflow_run)
+              FORCE=true
+              FORCE_REASON="triggered by ${EVENT_NAME}"
+              ;;
+          esac
+          if [ "${EVENT_NAME}" = "schedule" ] && [ "${EVENT_SCHEDULE}" = "${FORCE_CRON}" ]; then
+            FORCE=true
+            FORCE_REASON="weekly safety-net cron (${FORCE_CRON})"
+          fi
+          export FORCE FORCE_REASON HEAD_SHA LABEL_NS REG_USER REG_PASS MAX_AGE_HOURS
+
           targets=()
           while IFS='|' read -r name base desc; do
             name="${name//[[:space:]]/}"
@@ -63,22 +116,69 @@ jobs:
             # trim leading/trailing whitespace from the description
             desc="${desc#"${desc%%[![:space:]]*}"}"
             desc="${desc%"${desc##*[![:space:]]}"}"
-            # stable stream always builds
-            targets+=("{\"name\":\"${name}\",\"base\":\"${base}\",\"base_tag\":\"stable\",\"default_tag\":\"latest\",\"stream\":\"stable\",\"image_desc\":\"${desc}\"}")
-            # testing stream only when upstream publishes a :testing tag for this base
-            if docker buildx imagetools inspect "ghcr.io/ublue-os/${base}:testing" >/dev/null 2>&1; then
-              echo "ghcr.io/ublue-os/${base}:testing found -> adding testing stream"
-              targets+=("{\"name\":\"${name}\",\"base\":\"${base}\",\"base_tag\":\"testing\",\"default_tag\":\"testing\",\"stream\":\"testing\",\"image_desc\":\"${desc}\"}")
-            else
-              echo "ghcr.io/ublue-os/${base}:testing absent -> skipping testing stream"
-            fi
+
+            for stream in stable testing; do
+              if [ "${stream}" = "testing" ]; then
+                default_tag=testing
+                min_interval="${MIN_INTERVAL_HOURS_TESTING}"
+              else
+                default_tag=latest
+                min_interval="${MIN_INTERVAL_HOURS_STABLE}"
+              fi
+
+              # The gate doubles as the upstream :testing existence probe it
+              # replaces: an unresolvable-because-404 base means the stream does
+              # not exist for this variant. It distinguishes that from a
+              # transient registry fault, which the old `imagetools inspect
+              # >/dev/null 2>&1` could not.
+              result="$(BASE_REF="ghcr.io/ublue-os/${base}:${stream}" \
+                        PUBLISHED_REF="ghcr.io/${OWNER}/${name}:${default_tag}" \
+                        MIN_INTERVAL_HOURS="${min_interval}" \
+                        .github/scripts/upstream-gate.sh)"
+
+              build="$(jq -r '.build' <<<"${result}")"
+              reason="$(jq -r '.reason' <<<"${result}")"
+              digest="$(jq -r '.base_digest' <<<"${result}")"
+              absent="$(jq -r '.stream_absent' <<<"${result}")"
+
+              if [ "${absent}" = "true" ]; then
+                echo "- \`${name}\` (${stream}): stream does not exist upstream" >> "${GITHUB_STEP_SUMMARY}"
+                continue
+              fi
+              if [ "${build}" != "true" ]; then
+                echo "- \`${name}\` (${stream}): **skip** - ${reason}" >> "${GITHUB_STEP_SUMMARY}"
+                continue
+              fi
+
+              echo "- \`${name}\` (${stream}): **build** - ${reason}" >> "${GITHUB_STEP_SUMMARY}"
+              targets+=("$(jq -cn \
+                --arg name "${name}" --arg base "${base}" --arg stream "${stream}" \
+                --arg digest "${digest}" --arg default_tag "${default_tag}" --arg desc "${desc}" \
+                '{name: $name, base: $base, base_tag: $stream, base_digest: $digest,
+                  default_tag: $default_tag, stream: $stream, image_desc: $desc}')")
+            done
           done <<< "${VARIANTS}"
+
+          if [ "${#targets[@]}" -eq 0 ]; then
+            echo "targets=[]" >> "${GITHUB_OUTPUT}"
+            echo "any=false" >> "${GITHUB_OUTPUT}"
+            echo "" >> "${GITHUB_STEP_SUMMARY}"
+            echo "**Nothing to build.**" >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+
           printf -v joined '%s,' "${targets[@]}"
           echo "targets=[${joined%,}]" >> "${GITHUB_OUTPUT}"
+          echo "any=true" >> "${GITHUB_OUTPUT}"
 
   build_push:
     name: ${{ matrix.target.name }} (${{ matrix.target.stream }})
     needs: matrix
+    # A matrix expression evaluating to [] is a hard error ("Matrix vector
+    # 'target' does not contain any values"), which would paint a red X on
+    # every quiet poll. Guarding on `any` makes the nothing-to-do case a clean
+    # grey "Skipped" instead.
+    if: needs.matrix.outputs.any == 'true'
     runs-on: ubuntu-24.04
 
     # Freizzite: targets come from the `matrix` job above. IMAGE_NAME/BASE_IMAGE/
@@ -97,6 +197,9 @@ jobs:
       DEFAULT_TAG: ${{ matrix.target.default_tag }}
       STREAM: ${{ matrix.target.stream }}
       IMAGE_DESC: ${{ matrix.target.image_desc }}
+      # Digest the gate resolved for this target. The build pins the base to
+      # exactly this, so the label we record cannot drift from what was built.
+      BASE_DIGEST: ${{ matrix.target.base_digest }}
 
     permissions:
       contents: read
@@ -143,6 +246,22 @@ jobs:
       - name: Build Image
         id: build-image
         run: |
+          set -euo pipefail
+
+          # Pin the base to the digest the gate resolved. Without this,
+          # `podman build --pull=newer` re-resolves the floating stream tag at
+          # build time and could bake in a different digest than the one we are
+          # about to record, leaving the gate comparing against the wrong value.
+          # BUILD_BASE_DIGEST is what the Justfile writes as a label.
+          if [ -n "${BASE_DIGEST}" ]; then
+            export BASE_TAG="${STREAM}@${BASE_DIGEST}"
+            export BUILD_BASE_DIGEST="${BASE_DIGEST}"
+          else
+            export BASE_TAG="${STREAM}"
+            export BUILD_BASE_DIGEST=""
+            echo "::warning::upstream digest unresolved; building against the floating :${STREAM} tag"
+          fi
+
           sudo -E $(command -v just) build \
             ${IMAGE_NAME} \
             ${DEFAULT_TAG}
