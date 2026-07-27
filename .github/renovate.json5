@@ -17,5 +17,14 @@
       "matchDepTypes": ["container"],
       "matchFileNames": [".github/workflows/**.yaml", ".github/workflows/**.yml"],
     },
+    {
+      // The build gate resolves and pins the base image digest at build time,
+      // so a Renovate-managed digest on the Containerfile ARG would only ever
+      // be a local-dev default -- and would open a PR on every upstream move,
+      // duplicating what the gate already does.
+      "enabled": false,
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "matchFileNames": ["Containerfile"],
+    },
   ]
 }

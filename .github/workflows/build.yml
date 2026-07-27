@@ -10,21 +10,38 @@ on:
     types: [completed]
     branches: [main]
   schedule:
-    - cron: "0 8 * * *" # 8:00am US/Pacific; before I start work
+    # Cheap upstream poll (~40s). The `check` job resolves
+    # ghcr.io/ublue-os/aurora-dx:stable and compares it against the label on
+    # the image we last published; a full build only happens if something
+    # actually moved. Minute :37 is deliberate -- scheduled runs at :00 have
+    # been observed queueing 60-104 minutes late.
+    - cron: "37 */6 * * *"
+    # Unconditional rebuild, bypassing the gate entirely. Two jobs: it picks up
+    # floating build-time deps the gate cannot see (terra, COPRs, the Mozilla
+    # and 1Password repos, ~120 dnf packages), and it guarantees a build even
+    # if the gate logic itself breaks in the "always skip" direction.
+    # Must stay byte-identical to FORCE_CRON in the check job below.
+    - cron: "0 2 * * TUE"
       timezone: "America/Los_Angeles"
-    - cron: "0 2 * * TUE" # 2:00 utc tuesday; 1h after aurora weekly
   workflow_dispatch:
 
 env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}-${{ inputs.brand_name}}-${{ inputs.stream_name }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  # Only PR pushes should cancel. Scheduled polls share this group with
+  # main-branch builds, and builds take 35-40min: cancelling them means the
+  # build never publishes, so the gate keeps seeing the stale label and
+  # rebuilds -- a livelock that burns runner time and ships nothing.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build_push:
-    name: Build and push image
+  # Freirora: decide whether a build is warranted before spending 35-40min on
+  # one. State lives in labels on the image we already publish, so there is no
+  # cache, no state file and no extra secret to keep in sync.
+  check:
+    name: Check for upstream changes
     runs-on: ubuntu-24.04
     # Only run if not triggered by workflow_run, OR if workflow_run was successful
     if: >
@@ -33,8 +50,94 @@ jobs:
 
     permissions:
       contents: read
+      packages: read
+
+    outputs:
+      should_build: ${{ steps.gate.outputs.should_build }}
+      base_digest: ${{ steps.gate.outputs.base_digest }}
+
+    env:
+      BASE_REF: "ghcr.io/ublue-os/aurora-dx:stable"
+      # Derived rather than hardcoded: the labels on the published image still
+      # carry a stale org name from the last move, and this should not be a
+      # second place that has to be remembered.
+      PUBLISHED_REF: "ghcr.io/${{ github.repository }}:latest"
+      LABEL_NS: "io.github.freiheit.build"
+      # Rebuild at least weekly even if the base has not moved, so floating
+      # package repos (Firefox, 1Password, terra, COPRs) do not go stale.
+      MAX_AGE_HOURS: "168"
+      MIN_INTERVAL_HOURS: "0"
+      # Must match the second `schedule` cron above exactly; github.event.schedule
+      # hands back the literal cron string.
+      FORCE_CRON: "0 2 * * TUE"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Decide whether to build
+        id: gate
+        env:
+          REG_USER: ${{ github.actor }}
+          REG_PASS: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          set -euo pipefail
+
+          # A code change, a manual dispatch or a PR must always build; so must
+          # the weekly safety-net cron, which deliberately bypasses the gate.
+          FORCE=false
+          FORCE_REASON=""
+          case "${EVENT_NAME}" in
+            workflow_dispatch | pull_request | workflow_run)
+              FORCE=true
+              FORCE_REASON="triggered by ${EVENT_NAME}"
+              ;;
+          esac
+          if [ "${EVENT_NAME}" = "schedule" ] && [ "${EVENT_SCHEDULE}" = "${FORCE_CRON}" ]; then
+            FORCE=true
+            FORCE_REASON="weekly safety-net cron (${FORCE_CRON})"
+          fi
+          export FORCE FORCE_REASON
+
+          # GHCR refs must be lowercase; github.repository preserves the
+          # owner's casing.
+          PUBLISHED_REF="${PUBLISHED_REF,,}"
+          export PUBLISHED_REF
+
+          result="$(.github/scripts/upstream-gate.sh)"
+          echo "gate: ${result}"
+
+          build="$(jq -r '.build' <<<"${result}")"
+          reason="$(jq -r '.reason' <<<"${result}")"
+          digest="$(jq -r '.base_digest' <<<"${result}")"
+
+          echo "should_build=${build}" >> "${GITHUB_OUTPUT}"
+          echo "base_digest=${digest}" >> "${GITHUB_OUTPUT}"
+
+          if [ "${build}" = "true" ]; then
+            echo "### Building - ${reason}" >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "### Skipping - ${reason}" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+  build_push:
+    name: Build and push image
+    runs-on: ubuntu-24.04
+    needs: check
+    if: needs.check.outputs.should_build == 'true'
+
+    permissions:
+      contents: read
       packages: write
       id-token: write
+
+    env:
+      # Digest the gate resolved. The build pins the base to exactly this, so
+      # the label we record cannot drift from what was actually built.
+      BASE_DIGEST: ${{ needs.check.outputs.base_digest }}
 
     steps:
       # These stage versions are pinned by https://github.com/renovatebot/renovate
@@ -76,6 +179,22 @@ jobs:
       - name: Build Image
         id: build-image
         run: |
+          set -euo pipefail
+
+          # Pin the base to the digest the gate resolved. Without this,
+          # `podman build --pull=newer` re-resolves :stable at build time and
+          # could bake in a different digest than the one we are about to
+          # record, leaving the gate permanently comparing against the wrong
+          # value. BUILD_BASE_DIGEST is what the Justfile writes as a label.
+          if [ -n "${BASE_DIGEST}" ]; then
+            export BASE_TAG="stable@${BASE_DIGEST}"
+            export BUILD_BASE_DIGEST="${BASE_DIGEST}"
+          else
+            export BASE_TAG="stable"
+            export BUILD_BASE_DIGEST=""
+            echo "::warning::upstream digest unresolved; building against the floating :stable tag"
+          fi
+
           sudo -E $(command -v just) build \
             ${IMAGE_NAME} \
             ${DEFAULT_TAG}

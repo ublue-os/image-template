@@ -99,6 +99,11 @@ build $target_image=image_name $tag=default_tag:
     set -euox pipefail
 
     BUILD_ARGS=()
+    # Freirora: parameterize the base image so CI can pin it to a digest.
+    # Defaults come from image-template.env (dotenv-loaded); CI overrides
+    # BASE_TAG with "stable@sha256:..." via the environment.
+    BUILD_ARGS+=("--build-arg" "BASE_IMAGE=${BASE_IMAGE:-aurora-dx}")
+    BUILD_ARGS+=("--build-arg" "BASE_TAG=${BASE_TAG:-stable}")
     LABELS=()
     if [[ -z "$(git status -s)" ]]; then
         GIT_SHA=$(git rev-parse --short HEAD)
@@ -120,6 +125,22 @@ build $target_image=image_name $tag=default_tag:
     LABELS+=("--label" "org.opencontainers.image.description={{ image_desc }}")
     LABELS+=("--label" "org.opencontainers.image.title={{ image_name }}")
     LABELS+=("--label" "org.opencontainers.image.vendor={{ repo_organization }}")
+
+    # Freirora: record which upstream base produced this image, so the build
+    # gate can tell from the published image alone whether upstream has moved.
+    # BASE_TAG is "stable" locally and "stable@sha256:..." in CI; strip any
+    # digest so the ref label stays the floating ref we watch.
+    BASE_STREAM="${BASE_TAG:-stable}"
+    BASE_STREAM="${BASE_STREAM%%@*}"
+    LABELS+=("--label" "io.github.freiheit.build.base-ref=ghcr.io/ublue-os/${BASE_IMAGE:-aurora-dx}:${BASE_STREAM}")
+    if [[ -n "${BUILD_BASE_DIGEST:-}" ]]; then
+        LABELS+=("--label" "io.github.freiheit.build.base-digest=${BUILD_BASE_DIGEST}")
+    fi
+    # Mirrors the clean-tree guard above: a dirty tree records no commit, the
+    # gate then fails open, and you get one extra build rather than a wrong one.
+    if [[ -z "$(git status -s)" ]]; then
+        LABELS+=("--label" "io.github.freiheit.build.source-commit=$(git rev-parse HEAD)")
+    fi
 
     # This actually builds the image!
     PODMAN_BUILD_ARGS=("${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)

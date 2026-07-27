@@ -1,10 +1,17 @@
+# Base image is parameterized so CI can pin it to the exact digest the build
+# gate resolved (see the `check` job in .github/workflows/build.yml). Locally
+# these defaults, and the ones in image-template.env, resolve to the floating
+# :stable tag exactly as before.
+ARG BASE_IMAGE=aurora-dx
+ARG BASE_TAG=stable
+
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
 
 # Base Image
-FROM ghcr.io/ublue-os/aurora-dx:stable
+FROM ghcr.io/ublue-os/${BASE_IMAGE}:${BASE_TAG}
 ## Other possible base images include:
 # FROM ghcr.io/ublue-os/bazzite:testing
 # FROM ghcr.io/ublue-os/aurora:stable
