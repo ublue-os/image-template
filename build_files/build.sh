@@ -162,15 +162,40 @@ if [ -L /usr/local ]; then
     mkdir /usr/local
 fi
 
+# Snapshot /var so we can tell what this transaction adds. /var is
+# machine-local on bootc and is reset on deploy, so anything created here has
+# to be recreated by tmpfiles.d rather than shipped in the image.
+# (/var/cache, /var/log and /var/tmp are build mounts, not part of the image.)
+var_dirs() {
+    find /var -mindepth 1 \
+        \( -path /var/cache -o -path /var/log -o -path /var/tmp \) -prune -o \
+        -type d -print | sort
+}
+var_dirs >/tmp/var-dirs-before
+
 dnf5 -y install --skip-unavailable --skip-broken "${PACKAGES[@]}"
 
 if [ -n "${usrlocal_target}" ]; then
-    # keep the 1password launcher on the default PATH
-    if [ -L /usr/local/bin/1password ]; then
-        ln -sf "$(readlink /usr/local/bin/1password)" /usr/bin/1password
-        rm /usr/local/bin/1password
+    # Relocate launchers scriptlets dropped in /usr/local/bin (1password ships
+    # 1password-mcp there) to /usr/bin so they survive restoring the symlink.
+    if [ -d /usr/local/bin ]; then
+        for f in /usr/local/bin/*; do
+            # -e alone would skip dangling symlinks, which is exactly what
+            # these launchers can be at this point in the build
+            [ -e "$f" ] || [ -L "$f" ] || continue
+            # rewrite relative symlink targets so they still resolve from /usr/bin
+            if [ -L "$f" ]; then
+                target=$(readlink "$f")
+                case "$target" in
+                /*) ;;
+                *) ln -sfn "$(realpath -m "$(dirname "$f")/$target")" "$f" ;;
+                esac
+            fi
+            mv -f "$f" "/usr/bin/${f##*/}"
+            echo "relocated ${f} -> /usr/bin/${f##*/}"
+        done
     fi
-    # warn about (and drop) anything else scriptlets left behind
+    # warn about (and drop) anything left outside /usr/local/bin
     find /usr/local -mindepth 1 -not -type d | while read -r f; do
         echo "WARNING: discarding unexpected /usr/local content: $f" >&2
     done
@@ -216,6 +241,46 @@ npm completion >/etc/bash_completion.d/npm
 
 HOME=/var/tmp chezmoi completion fish >/etc/fish/completions/chezmoi.fish
 HOME=/var/tmp chezmoi completion bash >/etc/bash_completion.d/chezmoi
+
+# the HOME=/var/tmp redirects above leave dotfiles (and an op daemon socket)
+# behind; drop them so they don't end up in the image
+rm -rf /var/tmp/.config /var/tmp/.cache /var/tmp/.local
+
+####################
+### Image hygiene
+####################
+
+# 1Password's scriptlets create these groups directly instead of shipping
+# sysusers.d, which `bootc container lint` flags. Record the GIDs that were
+# actually allocated so they stay stable across deploys.
+{
+    for grp in onepassword onepassword-mcp; do
+        gid=$(getent group "$grp" | cut -d: -f3)
+        [ -n "$gid" ] && echo "g $grp $gid -"
+    done
+} >/usr/lib/sysusers.d/freirora-1password.conf
+[ -s /usr/lib/sysusers.d/freirora-1password.conf ] ||
+    rm -f /usr/lib/sysusers.d/freirora-1password.conf
+
+# dnf4 state (dragged in by etckeeper-dnf/dnf-plugins-core) and rpm-state are
+# build artifacts. Drop them before the /var snapshot so we don't bother
+# recreating them at boot.
+rm -rf /var/lib/dnf /var/lib/rpm-state
+
+# Everything else this build added under /var gets a tmpfiles.d entry (so it's
+# recreated on a fresh deploy) and is then removed from the image.
+var_dirs >/tmp/var-dirs-after
+{
+    echo "# Generated at image build time by build_files/build.sh"
+    comm -13 /tmp/var-dirs-before /tmp/var-dirs-after | while read -r d; do
+        printf 'd %s 0%s %s %s - -\n' \
+            "$d" "$(stat -c '%a' "$d")" "$(stat -c '%U' "$d")" "$(stat -c '%G' "$d")"
+    done
+} >/usr/lib/tmpfiles.d/freirora-var.conf
+
+comm -13 /tmp/var-dirs-before /tmp/var-dirs-after | tac | while read -r d; do
+    rm -rf "$d"
+done
 
 # Fail the build if any requested package didn't actually get installed
 verify_packages_installed "${PACKAGES[@]}"
