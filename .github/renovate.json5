@@ -4,7 +4,9 @@
     "config:best-practices",
   ],
 
-  "rebaseWhen": "never",
+  "rebaseWhen": "auto",
+
+  "dependencyDashboardAutoclose": true,
 
   "packageRules": [
     {
