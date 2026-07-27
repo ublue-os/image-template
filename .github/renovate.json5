@@ -4,7 +4,9 @@
     "config:best-practices",
   ],
 
-  "rebaseWhen": "never",
+  "rebaseWhen": "auto",
+
+  "dependencyDashboardAutoclose": true,
 
   "packageRules": [
     {
@@ -16,6 +18,15 @@
       "matchUpdateTypes": ["digest", "pinDigest", "pin"],
       "matchDepTypes": ["container"],
       "matchFileNames": [".github/workflows/**.yaml", ".github/workflows/**.yml"],
+    },
+    {
+      // The build gate resolves and pins the base image digest at build time,
+      // so the Containerfile's ARG BASE_TAG digest is only ever a local-dev
+      // default -- CI overrides it per matrix target. Renovate bumping it just
+      // opens a PR on every upstream move, duplicating what the gate does.
+      "enabled": false,
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "matchFileNames": ["Containerfile"],
     },
   ]
 }
