@@ -29,7 +29,13 @@ echo "Installing 1Password"
 
 # Prepare staging directory
 mkdir -p /var/opt # -p just in case it exists
-# for some reason...
+
+# On ostree systems, /usr/local is a symlink to /var/usrlocal which
+# doesn't exist at build time. The 1Password RPM scriptlet runs
+# "mkdir /usr/local/..." and fails when the symlink target is missing.
+if [ -L /usr/local ]; then
+  mkdir -p "$(readlink /usr/local)"
+fi
 
 # Setup repo
 cat << EOF > /etc/yum.repos.d/1password.repo
@@ -45,14 +51,17 @@ EOF
 # Import signing key
 rpm --import https://downloads.1password.com/linux/keys/1password.asc
 
-# Now let's install the packages.
-rpm-ostree install 1password 1password-cli
+# Install packages via dnf5 instead of rpm-ostree to avoid ostree
+# filesystem constraints during post-install scriptlets.
+dnf5 -y install 1password 1password-cli
 
 # Clean up the yum repo (updates are baked into new images)
 rm /etc/yum.repos.d/1password.repo -f
 
-# And then we do the hacky dance!
-mv /var/opt/1Password /usr/lib/1Password # move this over here
+# Move 1Password to /usr/lib so it works on the ostree rootfs.
+# dnf5 installs to /opt/1Password; on the live system /opt is a
+# symlink to /var/opt which is mutable, so we relocate it.
+mv /opt/1Password /usr/lib/1Password
 
 # Create a symlink /usr/bin/1password => /opt/1Password/1password
 rm /usr/bin/1password
