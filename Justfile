@@ -149,6 +149,7 @@ rechunk $target_image=image_name $tag=default_tag:
       --mount=type=image,src="${target_image}:${tag}",target=/chunkah \
       -v "${CHUNKAH_CONFIG_FILE}:/chunkah-config.json:ro,Z" \
       -v "${CHUNKAH_OUTPUT_DIR}:/run/out:Z" \
+      -e SOURCE_DATE_EPOCH=0 \
       quay.io/coreos/chunkah:latest \
       build \
       --verbose \
