@@ -168,8 +168,20 @@ This template comes with the necessary tooling to index your image on [artifacth
 
 # Justfile Documentation
 
-The `Justfile` contains various commands and configurations for building and managing container images and virtual machine images using Podman and other utilities.
-To use it, you must have installed [just](https://just.systems/man/en/introduction.html) from your package manager or manually. It is available by default on all Universal Blue images.
+The `Justfile` contains various commands and configurations for building and managing container images and virtual machine images using Podman and other utilities. It is also used inside Github Actions.
+
+## Required Utilities
+
+Container build:
+- [just](https://just.systems/man/en/introduction.html)
+- [podman](https://docs.podman.io/en/latest)
+- [jq])(https://jqlang.org)
+
+These are usually preinstalled on Universal Blue's Bootc Images.
+
+Linting:
+- shfmt
+- shellcheck
 
 ## Environment Variables
 
