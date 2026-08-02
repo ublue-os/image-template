@@ -21,7 +21,7 @@ default:
 # Check Just Syntax
 [group('Just')]
 check:
-    #!/usr/bin/bash
+    #!/usr/bin/env bash
     find . -type f -name "*.just" | while read -r file; do
     	echo "Checking syntax: $file"
     	just --unstable --fmt --check -f $file
@@ -32,7 +32,7 @@ check:
 # Fix Just Syntax
 [group('Just')]
 fix:
-    #!/usr/bin/bash
+    #!/usr/bin/env bash
     find . -type f -name "*.just" | while read -r file; do
     	echo "Checking syntax: $file"
     	just --unstable --fmt -f $file
@@ -43,7 +43,7 @@ fix:
 # Clean Repo
 [group('Utility')]
 clean:
-    #!/usr/bin/bash
+    #!/usr/bin/env bash
     set -eoux pipefail
     touch _build
     find *_build* -exec rm -rf {} \;
@@ -62,14 +62,14 @@ sudo-clean:
 [group('Utility')]
 [private]
 sudoif command *args:
-    #!/usr/bin/bash
+    #!/usr/bin/env bash
     function sudoif(){
         if [[ "${UID}" -eq 0 ]]; then
             "$@"
         elif [[ "$(command -v sudo)" && -n "${SSH_ASKPASS:-}" ]] && [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
-            /usr/bin/sudo --askpass "$@" || exit 1
+            sudo --askpass "$@" || exit 1
         elif [[ "$(command -v sudo)" ]]; then
-            /usr/bin/sudo "$@" || exit 1
+            sudo "$@" || exit 1
         else
             exit 1
         fi
@@ -156,18 +156,35 @@ rechunk $target_image=image_name $tag=default_tag:
     set -xeuo pipefail
 
     # TODO: pin chunkah image to hash once mature enough
-    # You may run into space issues on github runenrs as we are making a
-    # complete copy of the image
-    export CHUNKAH_CONFIG_STR=$(podman inspect "${target_image}")
-    podman run --rm --mount=type=image,src="${target_image}",target=/chunkah \
-    -e CHUNKAH_CONFIG_STR quay.io/coreos/chunkah:latest \
-    build \
-    --verbose \
-    --compressed \
-    --max-layers 128 \
-    --prune /sysroot/ \
-    --label ostree.commit- --label ostree.final-diffid- \
-    --tag "${target_image}:${tag}" | podman load
+    # You may run into space issues on github runners as we are making a
+    # complete copy of the image, which likely has no shared layers, unless your
+    # base image is also using chunkah
+    CHUNKAH_CONFIG_FILE="$(mktemp)"
+
+    # You may omit the current directory here if you are confident that you
+    # won't run out of space on /tmp for your image
+    CHUNKAH_OUTPUT_DIR="$(mktemp -d ./"${target_image}"_chunkah_XXXXXX)"
+
+    trap 'rm -f "${CHUNKAH_CONFIG_FILE}"; rm -rf "${CHUNKAH_OUTPUT_DIR}"' EXIT
+    podman inspect "${target_image}:${tag}" > "${CHUNKAH_CONFIG_FILE}"
+
+    podman run --rm \
+      --mount=type=image,src="${target_image}:${tag}",target=/chunkah \
+      -v "${CHUNKAH_CONFIG_FILE}:/chunkah-config.json:ro,Z" \
+      -v "${CHUNKAH_OUTPUT_DIR}:/run/out:Z" \
+      -e SOURCE_DATE_EPOCH=0 \
+      quay.io/coreos/chunkah:latest \
+      build \
+      --verbose \
+      --compressed \
+      --max-layers 128 \
+      --prune /sysroot/ \
+      --label ostree.commit- --label ostree.final-diffid- \
+      --config /chunkah-config.json \
+      --output oci:/run/out/chunked
+
+    CHUNKED_IMAGE="$(podman pull "oci:${CHUNKAH_OUTPUT_DIR}/chunked")"
+    podman tag "${CHUNKED_IMAGE}" "${target_image}:${tag}"
 
 # Split the image for smaller updates (Classical)!
 ostree-rechunk $target_image=image_name $tag=default_tag:
@@ -261,7 +278,7 @@ generate-default-tag $tag=default_tag:
 # Generate Tags
 [group('Utility')]
 generate-build-tags $target_image=image_name $tag=default_tag:
-    #!/usr/bin/bash
+    #!/usr/bin/env bash
     set -eoux pipefail
 
     DATE=$(date +%Y%m%d)
@@ -324,7 +341,7 @@ image_name $target_image=image_name:
 # 4. If the image is not found, pull it from the remote repository into reootful podman.
 
 _rootful_load_image $target_image=image_name $tag=default_tag:
-    #!/usr/bin/bash
+    #!/usr/bin/env bash
     set -eoux pipefail
 
     # Check if already running as root or under sudo
@@ -429,7 +446,7 @@ rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_reb
 
 # Run a virtual machine with the specified image type and configuration
 _run-vm $target_image $tag $type $config:
-    #!/usr/bin/bash
+    #!/usr/bin/env bash
     set -eoux pipefail
 
     # Determine the image file based on the type
@@ -494,7 +511,7 @@ spawn-vm rebuild="0" type="qcow2" ram="6G":
       -M "bootc-image" \
       --console=gui \
       --cpus=2 \
-      --ram=$(echo {{ ram }}| /usr/bin/numfmt --from=iec) \
+      --ram=$(echo {{ ram }}| numfmt --from=iec) \
       --network-user-mode \
       --vsock=false --pass-ssh-key=false \
       -i ./output/**/*.{{ type }}
@@ -509,7 +526,7 @@ lint:
         exit 1
     fi
     # Run shellcheck on all Bash scripts
-    /usr/bin/find . -iname "*.sh" -type f -exec shellcheck "{}" ';'
+    find . -iname "*.sh" -type f -exec shellcheck "{}" ';'
 
 # Runs shfmt on all Bash scripts
 format:
@@ -521,4 +538,4 @@ format:
         exit 1
     fi
     # Run shfmt on all Bash scripts
-    /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
+    find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
