@@ -168,28 +168,37 @@ ostree-rechunk $target_image=image_name $tag=default_tag:
 
     set -xeuo pipefail
 
-    # TODO: This is the only blocker for rootless CI
-    # https://github.com/coreos/rpm-ostree/issues/5346
-    if [[ ! "${UID}" -eq "0" ]]; then
-      echo "This needs to run as root."
-      exit 1
-    fi
-
     # Use the already-built local image to avoid pulling from a remote registry
     RPM_OSTREE_CHUNKER_IMAGE="localhost/${target_image}:${tag}"
 
+    trap 'rm -rf "${RPM_OSTREE_OUTPUT_DIR}"' EXIT
+
+    RPM_OSTREE_OUTPUT_DIR="$(mktemp -d ./"${target_image}"_rpm-ostree_XXXXXX)"
+    SUBDIR="${target_image}"
+    RPM_OSTREE_OUTPUT_SUBDIR="${RPM_OSTREE_OUTPUT_DIR}/${SUBDIR}"
+
+    # https://github.com/coreos/rpm-ostree/blob/d97c7a2b3ecd877b7e1ccba7df2d824889029514/tests/compose-image.sh#L100-L109
+    # or else we get `error: failed to invoke method OpenImageOptional: open /run/out/image-template/index.json: no such file or directory`
+    mkdir -p "${RPM_OSTREE_OUTPUT_SUBDIR}"
+    echo '{"imageLayoutVersion": "1.0.0"}' > "${RPM_OSTREE_OUTPUT_SUBDIR}/oci-layout"
+    echo '{"schemaVersion": 2, "manifests": []}' > "${RPM_OSTREE_OUTPUT_SUBDIR}/index.json"
+
     podman run --rm \
       --pull=never \
+      --mount=type=image,src="${target_image}:${tag}",target=/rpm-ostree \
       --privileged \
-      -v "/var/lib/containers:/var/lib/containers" \
+      -v "${RPM_OSTREE_OUTPUT_DIR}:/run/out:Z" \
       --entrypoint /usr/bin/rpm-ostree \
       "${RPM_OSTREE_CHUNKER_IMAGE}" \
       compose build-chunked-oci \
       --max-layers 127 \
       --format-version=2 \
       --bootc \
-      --from "localhost/${target_image}:${tag}" \
-      --output containers-storage:"localhost/${target_image}:${tag}"
+      --rootfs /rpm-ostree \
+      --output oci:/run/out/"${SUBDIR}":${tag}
+
+    CHUNKED_IMAGE="$(podman pull oci:"${RPM_OSTREE_OUTPUT_SUBDIR}")"
+    podman tag "${CHUNKED_IMAGE}" "${target_image}:${tag}"
 
 # Generate Default Tag
 [group('Utility')]
