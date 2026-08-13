@@ -171,17 +171,9 @@ ostree-rechunk $target_image=image_name $tag=default_tag:
     # Use the already-built local image to avoid pulling from a remote registry
     RPM_OSTREE_CHUNKER_IMAGE="localhost/${target_image}:${tag}"
 
-    trap 'rm -rf "${RPM_OSTREE_OUTPUT_DIR}"' EXIT
-
     RPM_OSTREE_OUTPUT_DIR="$(mktemp -d ./"${target_image}"_rpm-ostree_XXXXXX)"
-    SUBDIR="${target_image}"
-    RPM_OSTREE_OUTPUT_SUBDIR="${RPM_OSTREE_OUTPUT_DIR}/${SUBDIR}"
 
-    # https://github.com/coreos/rpm-ostree/blob/d97c7a2b3ecd877b7e1ccba7df2d824889029514/tests/compose-image.sh#L100-L109
-    # or else we get `error: failed to invoke method OpenImageOptional: open /run/out/image-template/index.json: no such file or directory`
-    mkdir -p "${RPM_OSTREE_OUTPUT_SUBDIR}"
-    echo '{"imageLayoutVersion": "1.0.0"}' > "${RPM_OSTREE_OUTPUT_SUBDIR}/oci-layout"
-    echo '{"schemaVersion": 2, "manifests": []}' > "${RPM_OSTREE_OUTPUT_SUBDIR}/index.json"
+    trap 'rm -rf "${RPM_OSTREE_OUTPUT_DIR}"' EXIT
 
     podman run --rm \
       --pull=never \
@@ -195,9 +187,9 @@ ostree-rechunk $target_image=image_name $tag=default_tag:
       --format-version=2 \
       --bootc \
       --rootfs /rpm-ostree \
-      --output oci:/run/out/"${SUBDIR}":${tag}
+      --output oci-archive:/run/out/"${target_image}.oci"
 
-    CHUNKED_IMAGE="$(podman pull oci:"${RPM_OSTREE_OUTPUT_SUBDIR}")"
+    CHUNKED_IMAGE="$(podman pull oci-archive:"${RPM_OSTREE_OUTPUT_DIR}/${target_image}.oci")"
     podman tag "${CHUNKED_IMAGE}" "${target_image}:${tag}"
 
 # Generate Default Tag
