@@ -168,12 +168,17 @@ ostree-rechunk $target_image=image_name $tag=default_tag:
 
     set -xeuo pipefail
 
+    # Use the already-built local image to avoid pulling from a remote registry
+    RPM_OSTREE_CHUNKER_IMAGE="localhost/${target_image}:${tag}"
+
+    GRAPHROOT="$(podman info --format '{{{{.Store.GraphRoot}}')"
+
     podman run --rm --pull=never --privileged \
       --mount=type=image,src="${target_image}:${tag}",target=/rpm-ostree \
-      --mount=type=bind,src=/home/runner/.local/share/containers/storage,target=/run/host-container-storage,rw \
+      --mount=type=bind,src=${GRAPHROOT},target=/run/host-container-storage,rw \
       --mount=type=tmpfs,target=/run/rpm-ostree-storage \
       --entrypoint /usr/bin/rpm-ostree \
-      "localhost/${target_image}:${tag}" \
+      "${RPM_OSTREE_CHUNKER_IMAGE}" \
       compose build-chunked-oci \
       --max-layers 127 \
       --format-version=2 \
