@@ -14,13 +14,17 @@ cp -avf "/ctx/system_files"/. /
 
 # this installs a package from fedora repos
 dnf5 install -y tmux
-dnf5 install -y niri noctalia stow git
+dnf5 install -y niri noctalia stow git rofi alacritty zsh
 # Use a COPR Example:
 #
 # dnf5 -y copr enable ublue-os/staging
 # dnf5 -y install package
 # Disable COPRs so they don't end up enabled on the final image:
 # dnf5 -y copr disable ublue-os/staging
+
+dnf5 -y copr enable atim/starship
+dnf5 -y install starship
+dnf5 -y copr disable atim/starship
 
 #### Example for enabling a System Unit File
 
