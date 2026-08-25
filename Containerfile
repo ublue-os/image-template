@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=quay.io/fedora/fedora-kinoite
+ARG BASE_IMAGE=quay.io/fedora/fedora-kinoite:44
 
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
