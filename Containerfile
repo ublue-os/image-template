@@ -3,8 +3,8 @@ ARG BASE_IMAGE=quay.io/fedora/fedora-kinoite:44
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
-COPY --from=ghcr.io/ublue-os/brew:latest /system_files /
 COPY system_files /system_files
+COPY --from=ghcr.io/ublue-os/brew:latest /system_files /system_files
 
 # Base Image
 # FROM ghcr.io/ublue-os/bazzite:stable@sha256:b923f92d5a5b59eb992e269383eba2744601052da9d3d1595f76e79aa6ce2df0
