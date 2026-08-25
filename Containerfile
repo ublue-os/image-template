@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=quay.io/fedora/fedora-kinoite:44
+ARG BASE_IMAGE=ghcr.io/blue-build/base-images/fedora-base:latest
 
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
@@ -30,7 +30,7 @@ FROM ${BASE_IMAGE}
 ## Uncomment the following line if one desires to make /opt immutable and be able to be used
 ## by the package manager.
 
-# RUN rm /opt && mkdir /opt
+RUN rm /opt && mkdir /opt
 
 ### MODIFICATIONS
 ## make modifications desired in your image and install packages by modifying the build.sh script
