@@ -51,7 +51,7 @@ dnf5 -y copr enable tranduong1988/fcitx5-bamboo
 dnf5 install -y sddm breeze-cursor-theme 
 
 dnf5 install -y dunst rofi mate-polkit xdg-user-dirs \
-                qt6ct arc-theme papirus-icon-theme
+                qt6ct arc-theme papirus-icon-theme \
                 waypaper nwg-look  # packages from terra repo
 
 dnf5 install -y alacritty neovim zsh fzf sysstat htop btop git stow eza curl wget fastfetch rsync brightnessctl pamixer xclip wl-clipboard \
