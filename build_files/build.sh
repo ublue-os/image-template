@@ -54,6 +54,11 @@ dnf5 install -y dunst rofi mate-polkit xdg-user-dirs \
                 qt6ct arc-theme papirus-icon-theme \
                 waypaper nwg-look  # packages from terra repo
 
+dnf5 install -y niri noctalia
+
+dnf5 install -y xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-xauth xsetroot \
+                        bspwm sxhkd polybar picom dunst xsecurelock scrot ImageMagick dex-autostart xss-lock feh
+
 dnf5 install -y alacritty neovim zsh fzf sysstat htop btop git stow eza curl wget fastfetch rsync brightnessctl pamixer xclip wl-clipboard \
                 7zip-standalone 7zip unrar unzip tar \
                 smartmontools \
