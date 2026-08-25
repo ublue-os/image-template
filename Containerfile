@@ -3,6 +3,7 @@ ARG BASE_IMAGE=quay.io/fedora/fedora-kinoite:44
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
+COPY --from=ghcr.io/ublue-os/brew:latest /system_files /
 COPY system_files /system_files
 
 # Base Image
@@ -19,7 +20,6 @@ FROM ${BASE_IMAGE}
 # Fedora base image: quay.io/fedora/fedora-bootc:44
 # CentOS base images: quay.io/centos-bootc/centos-bootc:stream10
 
-COPY --from=ghcr.io/ublue-os/brew:latest /system_files /
 
 ### [IM]MUTABLE /opt
 ## Some bootable images, like Fedora, have /opt symlinked to /var/opt, in order to
