@@ -27,5 +27,5 @@ dnf5 -y install starship
 dnf5 -y copr disable atim/starship
 
 #### Example for enabling a System Unit File
-
+systemctl enable brew-setup.service
 systemctl enable podman.socket
