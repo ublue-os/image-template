@@ -94,6 +94,13 @@ curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
 dnf5 install -y @virtualization
 
 fix_autostart_desktop "polkit-mate-authentication-agent-1.desktop"
+
+dnf5 -y copr disable tranduong1988/fcitx5-bamboo
+dnf5 remove -y terra-release
+
+# === flatpak remotes ===
+flatpak remote-add --if-not-exists --system flathub "https://dl.flathub.org/repo/flathub.flatpakrepo"
+
 #### Example for enabling a System Unit File
 systemctl set-default graphical.target
 systemctl enable sddm.service
