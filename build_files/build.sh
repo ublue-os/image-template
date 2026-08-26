@@ -61,15 +61,16 @@ dnf5 install -y niri noctalia
 
 dnf5 install -y alacritty zsh fzf sysstat git stow curl wget fastfetch rsync brightnessctl pamixer xclip wl-clipboard \
                 7zip-standalone 7zip unrar unzip tar \
-                smartmontools \
-                starship # packages from terra repo
+                smartmontools 
 # neovim htop btop eza
+# dnf5 install -y starship # packages from terra repo
 
 dnf5 install -y fuse fuse-libs 
 
 dnf5 install -y pass pinentry pinentry-qt gnupg2 xdotool wtype pwgen
 
-dnf5 install -y thunar vlc qbittorrent gimp atril
+dnf5 install -y thunar vlc qbittorrent atril
+# gimp
 
 dnf5 install -y fcitx5 fcitx5-configtool fcitx5-qt fcitx5-autostart fcitx5-bamboo
     # fcitx5-bamboo from copr tranduong1988/fcitx5-bamboo
@@ -88,9 +89,9 @@ dnf5 install -y \
 
 dnf5 install -y ubuntu-family-fonts # package from copr tranduong1988/fcitx5-bamboo  
 
-dnf5 install -y jetbrainsmono-nerd-fonts # packages from terra repo
+# dnf5 install -y jetbrainsmono-nerd-fonts # packages from terra repo
 
-curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
+# curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
 
 dnf5 install -y @virtualization
 
