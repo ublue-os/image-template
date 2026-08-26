@@ -44,6 +44,9 @@ fix_autostart_desktop() {
 # dnf5 -y install package
 # Disable COPRs so they don't end up enabled on the final image:
 # dnf5 -y copr disable ublue-os/staging
+rm /opt && mkdir /opt
+
+dnf5 remove -y firefox firefox-langpacks spice-vdagent
 
 dnf5 install -y --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release
 dnf5 -y copr enable tranduong1988/fcitx5-bamboo
@@ -63,7 +66,7 @@ dnf5 install -y alacritty zsh fzf sysstat git stow curl wget fastfetch rsync bri
                 7zip-standalone 7zip unrar unzip tar \
                 smartmontools 
 # neovim htop btop eza
-# dnf5 install -y starship # packages from terra repo
+dnf5 install -y starship # packages from terra repo
 
 dnf5 install -y fuse fuse-libs 
 
@@ -91,7 +94,7 @@ dnf5 install -y ubuntu-family-fonts # package from copr tranduong1988/fcitx5-bam
 
 # dnf5 install -y jetbrainsmono-nerd-fonts # packages from terra repo
 
-# curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
+curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
 
 dnf5 install -y @virtualization
 
