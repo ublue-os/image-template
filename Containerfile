@@ -1,10 +1,9 @@
-ARG BASE_IMAGE=ghcr.io/blue-build/base-images/fedora-base:latest
+ARG BASE_IMAGE=ghcr.io/ublue-os/bluefin:stable
 
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
-COPY --from=ghcr.io/ublue-os/brew:latest /system_files /system_files
 
 # Base Image
 # FROM ghcr.io/ublue-os/bazzite:stable@sha256:b923f92d5a5b59eb992e269383eba2744601052da9d3d1595f76e79aa6ce2df0
@@ -41,9 +40,6 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh 
-    #/usr/bin/systemctl preset brew-setup.service && \
-    #/usr/bin/systemctl preset brew-update.timer && \
-    #/usr/bin/systemctl preset brew-upgrade.timer
 
 ### LINTING
 ## Verify final image and contents are correct.

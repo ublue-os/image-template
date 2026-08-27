@@ -5,29 +5,6 @@ set -ouex pipefail
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
-fix_autostart_desktop() {
-    local desktop_file="${1:-polkit-mate-authentication-agent-1.desktop}"
-    local system_dir="/etc/xdg/autostart"
-
-    echo ":: Fix autostart desktop"
-    
-    # Check if the system desktop file exists
-    if [ ! -f "$system_dir/$desktop_file" ]; then
-        if [ -f "/usr/share/applications/$desktop_file" ]; then
-            system_dir="/usr/share/applications"
-        else
-            echo "Error: Desktop file '$desktop_file' not found in $system_dir or /usr/share/applications."
-            return 1
-        fi
-    fi
-
-    # Remove Desktop Environment restrictions (OnlyShowIn & NotShowIn)
-    echo "Removing desktop environment restrictions..."
-    sed -i -E '/^(OnlyShowIn|NotShowIn)=/d' "$system_dir/$desktop_file"
-
-    echo "Success: '$desktop_file' has been configured for user autostart in $system_dir."
-}
-
 ### Install packages
 
 # Packages can be installed from any enabled yum repo on the image.
@@ -51,44 +28,28 @@ dnf5 remove -y firefox firefox-langpacks spice-vdagent
 dnf5 install -y --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release
 dnf5 -y copr enable tranduong1988/fcitx5-bamboo
 
-dnf5 install -y sddm breeze-cursor-theme 
 
-dnf5 install -y dunst rofi mate-polkit xdg-user-dirs \
-                qt6ct arc-theme papirus-icon-theme \
-                waypaper nwg-look  # packages from terra repo
-
+dnf5 install -y rofi qt6ct nwg-look
+                
 dnf5 install -y niri noctalia
-
-# dnf5 install -y xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-xauth xsetroot \
-#                        bspwm sxhkd polybar picom dunst xsecurelock scrot ImageMagick dex-autostart xss-lock feh
 
 dnf5 install -y alacritty zsh fzf sysstat git stow curl wget fastfetch rsync brightnessctl pamixer xclip wl-clipboard \
                 7zip-standalone 7zip unrar unzip tar \
                 smartmontools 
-# neovim htop btop eza
-dnf5 install -y starship # packages from terra repo
 
 dnf5 install -y fuse fuse-libs 
 
 dnf5 install -y pass pinentry pinentry-qt gnupg2 xdotool wtype pwgen
 
-dnf5 install -y thunar vlc qbittorrent atril
+dnf5 install -y vlc qbittorrent atril
 # gimp
 
 dnf5 install -y fcitx5 fcitx5-configtool fcitx5-qt fcitx5-autostart fcitx5-bamboo
     # fcitx5-bamboo from copr tranduong1988/fcitx5-bamboo
 
-dnf5 install -y network-manager-applet NetworkManager-openvpn NetworkManager-wifi wpa_supplicant iwlwifi-mvm-firmware
-
 dnf5 install -y bluez bluez-libs blueman
 
 dnf5 install -y asusctl # package from terra repo
-
-dnf5 install -y \
-            google-noto-fonts-all \
-            google-noto-cjk-fonts \
-            google-noto-color-emoji-fonts \
-            google-noto-emoji-fonts 
 
 dnf5 install -y ubuntu-family-fonts # package from copr tranduong1988/fcitx5-bamboo  
 
@@ -98,16 +59,10 @@ curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
 
 dnf5 install -y @virtualization
 
-fix_autostart_desktop "polkit-mate-authentication-agent-1.desktop"
-
 dnf5 -y copr disable tranduong1988/fcitx5-bamboo
 dnf5 remove -y terra-release
 
-# === flatpak remotes ===
-flatpak remote-add --if-not-exists --system flathub "https://dl.flathub.org/repo/flathub.flatpakrepo"
 
 #### Example for enabling a System Unit File
-systemctl set-default graphical.target
-systemctl enable sddm.service
-systemctl enable brew-setup.service
+systemctl disable flatpak-preinstall.service
 systemctl enable podman.socket
