@@ -21,7 +21,7 @@ cp -avf "/ctx/system_files"/. /
 # dnf5 -y install package
 # Disable COPRs so they don't end up enabled on the final image:
 # dnf5 -y copr disable ublue-os/staging
-rm /opt && mkdir /opt
+# rm /opt && mkdir /opt
 
 dnf5 remove -y firefox firefox-langpacks spice-vdagent
 
@@ -55,7 +55,7 @@ dnf5 install -y ubuntu-family-fonts # package from copr tranduong1988/fcitx5-bam
 
 # dnf5 install -y jetbrainsmono-nerd-fonts # packages from terra repo
 
-curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
+# curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
 
 dnf5 install -y @virtualization
 
