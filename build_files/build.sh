@@ -3,7 +3,8 @@
 set -ouex pipefail
 
 # Copy the contents of system_files/ of the git repo to /
-cp -avf "/ctx/system_files"/. /
+#cp -avf "/ctx/system_files"/. /
+rsync -rvK "/ctx/system_files"/. /
 
 ### Install packages
 
