@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 17 * * 5'  # 17:00pm UTC every fridays
+    - cron: '05 10 * * 5'  # 10:05am UTC everyday
   push:
     branches:
       - main
@@ -23,7 +23,7 @@ concurrency:
 jobs:
   build_push:
     name: Build and push image
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     permissions:
       contents: read
@@ -70,7 +70,7 @@ jobs:
       - name: Build Image
         id: build-image
         run: |
-          sudo -E $(command -v just) build \
+          just build \
             ${IMAGE_NAME} \
             ${DEFAULT_TAG}
 
@@ -78,7 +78,7 @@ jobs:
       - name: Rechunk with rpm-ostree
         id: rechunk
         run: |
-          sudo -E $(command -v just) ostree-rechunk \
+          just ostree-rechunk \
             ${IMAGE_NAME} \
             ${DEFAULT_TAG}
 
@@ -88,7 +88,7 @@ jobs:
       #- name: Rechunk with Chunkah
       #  id: rechunk
       #  run: |
-      #    sudo -E $(command -v just) rechunk \
+      #    just rechunk \
       #      ${IMAGE_NAME} \
       #      ${DEFAULT_TAG}
 
@@ -108,7 +108,7 @@ jobs:
         env:
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
         run: |
-          sudo -E $(command -v just) tag-images \
+          just tag-images \
             "${IMAGE_NAME}" \
             "${DEFAULT_TAG}" \
             "${ALIAS_TAGS}"
@@ -131,7 +131,7 @@ jobs:
         run: |
           set -euox pipefail
           for tag in ${ALIAS_TAGS}; do
-            sudo -E podman push --digestfile=/tmp/digestfile ${IMAGE_NAME}:${tag} ${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}
+            podman push --digestfile=/tmp/digestfile ${IMAGE_NAME}:${tag} ${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}
           done
 
           digest=$(< /tmp/digestfile)

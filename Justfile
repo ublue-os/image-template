@@ -168,30 +168,23 @@ ostree-rechunk $target_image=image_name $tag=default_tag:
 
     set -xeuo pipefail
 
-    # TODO: This is the only blocker for rootless CI
-    # https://github.com/coreos/rpm-ostree/issues/5346
-    if [[ ! "${UID}" -eq "0" ]]; then
-      echo "This needs to run as root."
-      exit 1
-    fi
-
     # Use the already-built local image to avoid pulling from a remote registry
     RPM_OSTREE_CHUNKER_IMAGE="localhost/${target_image}:${tag}"
 
-    # duong add -v /var/tmp:/var/tmp
-    podman run --rm \
-      --pull=never \
-      --privileged \
-      -v "/var/lib/containers:/var/lib/containers" \
-      -v "/var/tmp:/var/tmp" \
+    GRAPHROOT="$(podman info --format '{{ '{{.Store.GraphRoot}}' }}')"
+
+    podman run --rm --pull=never --privileged \
+      --mount=type=image,src="${target_image}:${tag}",target=/rpm-ostree \
+      --mount=type=bind,src=${GRAPHROOT},target=/run/host-container-storage,rw \
+      --mount=type=tmpfs,target=/run/rpm-ostree-storage \
       --entrypoint /usr/bin/rpm-ostree \
       "${RPM_OSTREE_CHUNKER_IMAGE}" \
       compose build-chunked-oci \
       --max-layers 127 \
       --format-version=2 \
       --bootc \
-      --from "localhost/${target_image}:${tag}" \
-      --output containers-storage:"localhost/${target_image}:${tag}"
+      --rootfs /rpm-ostree \
+      --output "containers-storage:[overlay@/run/host-container-storage+/run/rpm-ostree-storage]localhost/${target_image}:${tag}"
 
 # Generate Default Tag
 [group('Utility')]
