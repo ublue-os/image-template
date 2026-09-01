@@ -42,7 +42,7 @@ dnf5 install -y fuse fuse-libs
 
 dnf5 install -y pass pinentry pinentry-qt gnupg2 xdotool wtype pwgen
 
-dnf5 install -y vlc qbittorrent atril
+dnf5 install -y atril
 # gimp
 
 dnf5 install -y fcitx5 fcitx5-configtool fcitx5-qt fcitx5-autostart fcitx5-bamboo
@@ -66,4 +66,6 @@ dnf5 remove -y terra-release
 
 #### Example for enabling a System Unit File
 systemctl disable flatpak-preinstall.service
+systemctl enable libvirt-workaround.service
+systemctl enable blueman-workaround.service
 systemctl enable podman.socket
