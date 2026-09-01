@@ -67,5 +67,4 @@ dnf5 remove -y terra-release
 #### Example for enabling a System Unit File
 systemctl disable flatpak-preinstall.service
 systemctl enable libvirt-workaround.service
-systemctl enable blueman-workaround.service
 systemctl enable podman.socket
