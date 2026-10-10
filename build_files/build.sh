@@ -2,6 +2,8 @@
 
 set -ouex pipefail
 
+shopt -s nullglob
+
 cp -avf "/ctx/system_files"/. /
 
 dnf5 -y config-manager addrepo --from-repofile=https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo
