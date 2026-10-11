@@ -39,7 +39,6 @@ export HOME=/tmp/amneziavpn
 mkdir -p "$HOME"
 QT_QPA_PLATFORM=offscreen ./AmneziaVPN_5.0.3.0_linux_x64.run --accept-licenses --default-answer --confirm-command install
 rm -rf AmneziaVPN_5.0.3.0_linux_x64.run "$HOME"
-mkdir -p /usr/bin /usr/sbin
 ln -sf /opt/AmneziaVPN/bin/AmneziaVPN /usr/bin/AmneziaVPN
 ln -sf /opt/AmneziaVPN/bin/AmneziaVPN /usr/sbin/AmneziaVPN
 
@@ -47,7 +46,6 @@ dnf5 -y install v2ray-geoip v2ray-domain-list-community xray
 dnf5 -y install v2raya
 wget -O /usr/bin/v2raya_core https://github.com/v2rayA/v2rayA/releases/download/v2.5.10/v2raya_core_linux_x64_2.5.10
 chmod +x /usr/bin/v2raya_core
-mkdir -p /usr/share /usr/local/share
 ln -sf /usr/share/v2ray /usr/share/v2raya
 ln -sf /usr/share/v2ray /usr/local/share/v2raya
 
