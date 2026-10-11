@@ -37,7 +37,8 @@ defaults:
 jobs:
   build:
     name: Build ISO
-    runs-on: ubuntu-26.04
+    # 24.04 isolates the runner image: the 26.04 run died inside osbuild's mount and chown calls.
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
       contents: read
@@ -46,14 +47,6 @@ jobs:
       PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
 
     steps:
-      - name: Mount BTRFS container storage
-        # Puts podman storage on a BTRFS loopback. If that fails, the action frees disk space instead.
-        uses: ublue-os/container-storage-action@dc1f4c8f17b672069e921f001132f7cf98a423a6  # main
-        continue-on-error: true
-        with:
-          target-dir: /var/lib/containers
-          mount-opts: compress-force=zstd:2
-
       - name: Maximize build space
         uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6  # master
         with:
@@ -109,6 +102,10 @@ jobs:
 
           sudo podman pull "$BIB_IMAGE"
           sudo podman pull "$IMAGE_REF"
+
+          # Capabilities the builder container really gets. Compare this line between runner images.
+          sudo podman run --rm --privileged --entrypoint /bin/sh "$BIB_IMAGE" \
+            -c 'grep -E "^Cap(Bnd|Eff):" /proc/self/status'
 
           # Mirrors _build-bib in the Justfile (same mounts, rootfs and librepo settings),
           # so CI and local builds produce the same ISO. The image must be pullable anonymously.
@@ -326,6 +323,13 @@ jobs:
           path: metadata/*.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Collect kernel denials after a failed build
+        if: failure()
+        run: |
+          # AppArmor, audit and capability messages explain EACCES and EPERM from inside the builder.
+          sudo dmesg --ctime 2>/dev/null | grep -iE 'apparmor|denied|audit' | tail -n 200 || true
+          sudo journalctl -k --no-pager 2>/dev/null | grep -iE 'apparmor|denied|audit' | tail -n 200 || true
 
   publish:
     name: Publish metadata
