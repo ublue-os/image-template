@@ -49,7 +49,7 @@ chmod +x /usr/bin/v2raya_core
 mkdir -p /usr/share/manitosik
 mkdir -p /usr/local/share/manitosik
 ln -sf /usr/share/v2ray /usr/share/v2raya
-ln -sf /usr/share/v2ray /usr/local/share/v2raya
+# ln -sf /usr/share/v2ray /usr/local/share/v2raya # /usr/local is actually /var/usrlocal
 
 dnf5 -y copr enable bieszczaders/kernel-cachyos-lto
 dnf5 -y copr enable bieszczaders/kernel-cachyos-addons
