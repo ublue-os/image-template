@@ -1,406 +1,115 @@
 ---
-# Builds the installer ISO for the image published by build.yml. On the default branch it
-# also uploads the ISO to storage.to and records its URL and checksum on the `metadata` branch.
 name: Build disk images
 
 on:
   workflow_dispatch:
-  schedule:
-    # Every 3 days at 12:30 UTC, after build.yml has published the day's image (10:05 UTC).
-    - cron: '30 12 */3 * *'
+    inputs:
+      upload-to-s3:
+        description: "Upload to S3"
+        required: false
+        default: false
+        type: boolean
+      platform:
+        required: true
+        type: choice
+        options:
+          - amd64
+          - arm64
   pull_request:
     branches:
       - main
     paths:
-      - 'disk_config/iso.toml'
-      - '.github/workflows/build-disk.yml'
+      - './disk_config/disk.toml'
+      - './disk_config/iso.toml'
+      - './.github/workflows/build-disk.yml'
 
 env:
-  # BIB_IMAGE and DEFAULT_TAG: keep in sync with image-template.env.
-  BIB_IMAGE: quay.io/centos-bootc/bootc-image-builder:latest
-  DEFAULT_TAG: latest
-  ISO_CONFIG: disk_config/iso.toml
-  STORAGE_TO_API: https://storage.to/api
+  IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
+  DEFAULT_TAG: "latest"
+  BIB_IMAGE: "quay.io/centos-bootc/bootc-image-builder:latest"
 
-# Pull request builds supersede each other. Builds on the default branch are never
-# cancelled, so a scheduled or manual release is not lost part-way through.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-permissions: {}
-
-defaults:
-  run:
-    shell: bash
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    name: Build ISO
-    # 24.04 isolates the runner image: the 26.04 run died inside osbuild's mount and chown calls.
-    runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    name: Build disk images
+    runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-26.04' || 'ubuntu-26.04-arm' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        disk-type: ["qcow2", "anaconda-iso"]
     permissions:
       contents: read
-    env:
-      # Only the default branch uploads to storage.to and publishes metadata.
-      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+      packages: read
+      id-token: write
 
     steps:
-      - name: Maximize build space
-        uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6  # master
-        with:
-          extra-squeeze: true
-
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          persist-credentials: false
-
       - name: Prepare environment
         run: |
-          set -Eeuo pipefail
+          USER_UID=$(id -u)
+          USER_GID=$(id -g)
+          # Concatenate the types with a hyphen
+          DISK_TYPE=$(echo "${{ matrix.disk-type }}" | tr ' ' '-')
+          # Lowercase the image uri
+          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+          echo "DISK_TYPE=${DISK_TYPE}" >> ${GITHUB_ENV}
+          echo "USER_UID=${USER_UID}" >> ${GITHUB_ENV}
+          echo "USER_GID=${USER_GID}" >> ${GITHUB_ENV}
 
-          # GHCR repository names must be lowercase.
-          image_name="${GITHUB_REPOSITORY#*/}"
-          image_name="${image_name,,}"
-          owner="${GITHUB_REPOSITORY_OWNER,,}"
-          {
-            echo "IMAGE_NAME=${image_name}"
-            echo "IMAGE_REF=ghcr.io/${owner}/${image_name}:${DEFAULT_TAG}"
-          } >> "$GITHUB_ENV"
-
-          # Runner images include these; install only if one is missing.
-          missing=()
-          for tool in curl jq zstd; do
-            command -v "$tool" >/dev/null || missing+=("$tool")
-          done
-          if ((${#missing[@]} > 0)); then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq "${missing[@]}"
-          fi
-
-      - name: Build ISO
+      - name: Install dependencies
+        if: inputs.platform == 'arm64'
         run: |
-          set -Eeuo pipefail
+          set -x
+          sudo apt update -y
+          sudo apt install -y \
+            podman
 
-          if [[ ! -s "$ISO_CONFIG" ]]; then
-            echo "::error::${ISO_CONFIG} is missing or empty"
-            exit 1
-          fi
-
-          # Podman setup copied from osbuild/bootc-image-builder-action, which is deprecated
-          # upstream. The storage reset works around osbuild/bootc-image-builder#446.
-          sudo rm -rf /var/lib/containers/storage
-          sudo mkdir -p /etc/containers
-          printf '%s\n' \
-            '[storage]' \
-            'driver = "overlay"' \
-            'runroot = "/run/containers/storage"' \
-            'graphroot = "/var/lib/containers/storage"' |
-            sudo tee /etc/containers/storage.conf >/dev/null
-
-          sudo podman pull "$BIB_IMAGE"
-          sudo podman pull "$IMAGE_REF"
-
-          # Capabilities the builder container really gets. Compare this line between runner images.
-          sudo podman run --rm --privileged --entrypoint /bin/sh "$BIB_IMAGE" \
-            -c 'grep -E "^Cap(Bnd|Eff):" /proc/self/status'
-
-          # Mirrors _build-bib in the Justfile (same mounts, rootfs and librepo settings),
-          # so CI and local builds produce the same ISO. The image must be pullable anonymously.
-          mkdir -p output
-          sudo podman run --rm --privileged --net=host \
-            --security-opt label=type:unconfined_t \
-            --volume /var/lib/containers/storage:/var/lib/containers/storage \
-            --volume "${GITHUB_WORKSPACE}/output:/output" \
-            --volume "${GITHUB_WORKSPACE}/${ISO_CONFIG}:/config.toml:ro" \
-            "$BIB_IMAGE" \
-            build \
-            --type anaconda-iso \
-            --rootfs btrfs \
-            --use-librepo=true \
-            --chown "$(id -u):$(id -g)" \
-            --output /output \
-            "$IMAGE_REF"
-
-      - name: Compress ISO
-        run: |
-          set -Eeuo pipefail
-
-          iso="$(find output -type f -name '*.iso' -print -quit)"
-          if [[ -z "$iso" ]]; then
-            echo "::error::bootc-image-builder produced no ISO"
-            find output -print
-            exit 1
-          fi
-          # ISO 9660 images carry the "CD001" signature at byte offset 32769.
-          if [[ "$(dd if="$iso" bs=1 skip=32769 count=5 status=none)" != "CD001" ]]; then
-            echo "::error::${iso} is not an ISO 9660 image"
-            exit 1
-          fi
-
-          # The payload is usually compressed squashfs already, so a high zstd level saves
-          # little and costs a lot of time. Level 15 keeps this step short.
-          mkdir -p release
-          zst="release/${IMAGE_NAME}.iso.zst"
-          zstd -T0 -15 -f -q -o "$zst" "$iso"
-          zstd -t -q "$zst"
-          rm -rf output
-
-          (cd release && sha256sum "$(basename "$zst")" > "$(basename "$zst").sha256")
-          ls -lh release
-
-      - name: Upload ISO artifact
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+      - name: Maximize build space
+        if: inputs.platform != 'arm64'
+        uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
-          name: iso
-          path: release/
+          remove-codeql: true
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Build disk images
+        id: build
+        uses: osbuild/bootc-image-builder-action@8661cd3832544ad68c12dcde8681b13ab0f56a8d # main
+        with:
+          builder-image: ${{ env.BIB_IMAGE }}
+          config-file: ${{ matrix.disk-type == 'anaconda-iso' && './disk_config/iso.toml' || './disk_config/disk.toml' }}
+          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+          chown: ${{ env.USER_UID }}:${{ env.USER_GID }}
+          types: ${{ matrix.disk-type }}
+          additional-args: --use-librepo=True
+
+      - name: Upload disk images and Checksum to Job Artifacts
+        if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: ${{ steps.build.outputs.output-directory }}
           if-no-files-found: error
+          retention-days: 0
           compression-level: 0
-          retention-days: 7
           overwrite: true
 
-      - name: Publish ISO to storage.to
-        id: storage
-        if: env.PUBLISH == 'true'
-        run: |
-          set -Eeuo pipefail
-
-          file="release/${IMAGE_NAME}.iso.zst"
-          name="$(basename "$file")"
-          size="$(stat -c%s "$file")"
-          mime="application/zstd"
-          visitor="$(cat /proc/sys/kernel/random/uuid)"
-          work="$(mktemp -d)"
-          trap 'rm -rf "$work"' EXIT
-
-          echo "Initializing upload of ${name} (${size} bytes)"
-          # The init response contains presigned URLs, so it is parsed but never printed.
-          init="$(curl -fsSL -X POST "${STORAGE_TO_API}/upload/init" \
-            -H "Content-Type: application/json" \
-            -H "X-Visitor-Token: ${visitor}" \
-            -d "$(jq -cn --arg filename "$name" --arg content_type "$mime" --argjson size "$size" \
-              '{filename: $filename, content_type: $content_type, size: $size}')")"
-          upload_type="$(jq -r '.type // empty' <<<"$init")"
-          r2_key="$(jq -r '.r2_key // empty' <<<"$init")"
-          if [[ -z "$r2_key" ]]; then
-            echo "::error::upload/init returned no r2_key"
-            exit 1
-          fi
-          echo "Upload type: ${upload_type:-unknown}"
-
-          case "$upload_type" in
-            single)
-              upload_url="$(jq -r '.upload_url // empty' <<<"$init")"
-              if [[ -z "$upload_url" ]]; then
-                echo "::error::upload/init returned no upload_url"
-                exit 1
-              fi
-              curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 5 \
-                --upload-file "$file" "$upload_url"
-              ;;
-
-            multipart)
-              upload_id="$(jq -r '.upload_id // empty' <<<"$init")"
-              part_size="$(jq -r '.part_size' <<<"$init")"
-              total_parts="$(jq -r '.total_parts' <<<"$init")"
-              if [[ -z "$upload_id" || ! "$part_size" =~ ^[0-9]+$ || ! "$total_parts" =~ ^[0-9]+$ ]]; then
-                echo "::error::upload/init returned an incomplete multipart description"
-                exit 1
-              fi
-              parts_file="${work}/parts.jsonl"
-              : > "$parts_file"
-
-              for ((i = 1; i <= total_parts; i++)); do
-                echo "Uploading part ${i}/${total_parts}"
-
-                url="$(jq -r --arg n "$i" '.initial_urls[$n] // empty' <<<"$init")"
-                if [[ -z "$url" ]]; then
-                  url="$(curl -fsSL -X POST "${STORAGE_TO_API}/upload/parts" \
-                    -H "Content-Type: application/json" \
-                    -d "$(jq -cn --arg id "$upload_id" --argjson n "$i" '{upload_id: $id, part_numbers: [$n]}')" |
-                    jq -r '.part_urls[0].url // empty')"
-                fi
-                if [[ -z "$url" ]]; then
-                  echo "::error::no upload URL for part ${i}"
-                  exit 1
-                fi
-
-                # Copy only this part out of the ISO rather than pre-splitting the whole file.
-                offset=$(( (i - 1) * part_size ))
-                length=$(( size - offset ))
-                if (( length > part_size )); then
-                  length=$part_size
-                fi
-                if (( length <= 0 )); then
-                  echo "::error::part ${i} lies beyond the end of the file"
-                  exit 1
-                fi
-                part="${work}/part"
-                dd if="$file" of="$part" bs=8M iflag=skip_bytes,count_bytes \
-                  skip="$offset" count="$length" status=none
-
-                headers="${work}/headers"
-                curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 5 \
-                  -D "$headers" -o /dev/null --upload-file "$part" "$url"
-                # Take the last ETag in case curl followed a redirect. Quotes are stripped so the
-                # value matches what the completion request expects. grep exits 1 when the header
-                # is missing; `|| true` lets the explicit check below report that instead.
-                etag="$(grep -i '^etag:' "$headers" | tail -n1 | cut -d: -f2- | tr -d ' \r"' || true)"
-                if [[ -z "$etag" ]]; then
-                  echo "::error::no ETag returned for part ${i}"
-                  exit 1
-                fi
-                jq -cn --argjson n "$i" --arg etag "$etag" '{partNumber: $n, etag: $etag}' >> "$parts_file"
-                rm -f "$part" "$headers"
-              done
-
-              echo "Completing multipart upload"
-              curl --fail --silent --show-error -X POST "${STORAGE_TO_API}/upload/complete-multipart" \
-                -H "Content-Type: application/json" \
-                -d "$(jq -cn --arg id "$upload_id" --slurpfile parts "$parts_file" \
-                  '{upload_id: $id, parts: $parts}')" >/dev/null
-              ;;
-
-            *)
-              echo "::error::unknown upload type: ${upload_type:-<none>}"
-              exit 1
-              ;;
-          esac
-
-          echo "Confirming upload"
-          confirm="$(curl -fsSL -X POST "${STORAGE_TO_API}/upload/confirm" \
-            -H "Content-Type: application/json" \
-            -H "X-Visitor-Token: ${visitor}" \
-            -d "$(jq -cn --arg filename "$name" --arg content_type "$mime" --argjson size "$size" \
-              --arg r2_key "$r2_key" \
-              '{filename: $filename, content_type: $content_type, size: $size, r2_key: $r2_key}')")"
-          download_url="$(jq -r '.file.url // empty' <<<"$confirm")"
-          if [[ "$download_url" != https://* ]]; then
-            echo "::error::upload/confirm returned no download URL"
-            exit 1
-          fi
-          echo "Download URL: ${download_url}"
-          echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
-
-      - name: Write release metadata
-        if: env.PUBLISH == 'true'
+      - name: Upload to S3
+        if: inputs.upload-to-s3 == true && github.event_name != 'pull_request'
+        shell: bash
         env:
-          DOWNLOAD_URL: ${{ steps.storage.outputs.download_url }}
+          RCLONE_CONFIG_S3_TYPE: s3
+          RCLONE_CONFIG_S3_PROVIDER: ${{ secrets.S3_PROVIDER }}
+          RCLONE_CONFIG_S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          RCLONE_CONFIG_S3_REGION: ${{ secrets.S3_REGION }}
+          RCLONE_CONFIG_S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          SOURCE_DIR: ${{ steps.build.outputs.output-directory }}
         run: |
-          set -Eeuo pipefail
-
-          file="release/${IMAGE_NAME}.iso.zst"
-          sha256="$(cut -d' ' -f1 "${file}.sha256")"
-          mkdir -p metadata
-          jq -n \
-            --arg image "$IMAGE_REF" \
-            --arg filename "$(basename "$file")" \
-            --arg download_url "$DOWNLOAD_URL" \
-            --arg sha256 "$sha256" \
-            --argjson size_bytes "$(stat -c%s "$file")" \
-            --arg built_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg commit "$GITHUB_SHA" \
-            '{"anaconda-iso": {image: $image, filename: $filename, download_url: $download_url,
-              sha256: $sha256, size_bytes: $size_bytes, built_at: $built_at, commit: $commit}}' \
-            > metadata/anaconda-iso.json
-
-          {
-            echo "### Disk image published"
-            echo ""
-            echo "- Image: \`${IMAGE_REF}\`"
-            echo "- Download: ${DOWNLOAD_URL}"
-            echo "- SHA-256: \`${sha256}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload release metadata
-        if: env.PUBLISH == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
-        with:
-          name: metadata-iso
-          path: metadata/*.json
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Collect kernel denials after a failed build
-        if: failure()
-        run: |
-          # AppArmor, audit and capability messages explain EACCES and EPERM from inside the builder.
-          sudo dmesg --ctime 2>/dev/null | grep -iE 'apparmor|denied|audit' | tail -n 200 || true
-          sudo journalctl -k --no-pager 2>/dev/null | grep -iE 'apparmor|denied|audit' | tail -n 200 || true
-
-  publish:
-    name: Publish metadata
-    needs: build
-    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-    runs-on: ubuntu-26.04
-    timeout-minutes: 10
-    permissions:
-      contents: write  # push the metadata branch
-
-    steps:
-      - name: Download metadata
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
-        with:
-          pattern: metadata-*
-          path: downloads
-          merge-multiple: true
-
-      - name: Merge metadata
-        run: |
-          set -Eeuo pipefail
-
-          mkdir -p metadata
-          jq -s 'add' downloads/*.json > metadata/releases.json
-          cat metadata/releases.json
-
-      - name: Push to metadata branch
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -Eeuo pipefail
-
-          src="${PWD}/metadata"
-          work="$(mktemp -d)"
-          trap 'rm -rf "$work"' EXIT
-          cd "$work"
-
-          git init -q
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Pass the token as an HTTP header so it never appears in the remote URL.
-          git config http.https://github.com/.extraheader \
-            "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
-
-          # ls-remote exits 2 when the branch is missing. Any other failure must stop the job,
-          # because treating a network error as "no branch" would replace the existing history.
-          set +e
-          git ls-remote --exit-code --heads origin metadata >/dev/null
-          status=$?
-          set -e
-          case "$status" in
-            0)
-              git fetch -q --depth 1 origin metadata
-              git checkout -q -B metadata FETCH_HEAD
-              ;;
-            2)
-              git checkout -q --orphan metadata
-              ;;
-            *)
-              echo "::error::could not query origin (git exit ${status})"
-              exit "$status"
-              ;;
-          esac
-
-          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp -r "${src}/." .
-          git add --all
-          if git diff --cached --quiet; then
-            echo "Metadata unchanged; nothing to push."
-            exit 0
-          fi
-          git commit -q -m "Update disk image metadata (${GITHUB_SHA:0:7})"
-          git push -q origin HEAD:refs/heads/metadata
+          sudo apt-get update
+          sudo apt-get install -y rclone
+          rclone copy $SOURCE_DIR S3:${{ secrets.S3_BUCKET_NAME }}

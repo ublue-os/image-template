@@ -2,6 +2,8 @@
 
 set -ouex pipefail
 
+shopt -s nullglob
+
 if [ "$(id -u)" -ne 0 ]; then
     echo "Error: This script must be run with root privileges."
     exit 1

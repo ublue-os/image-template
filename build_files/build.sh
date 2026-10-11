@@ -46,6 +46,8 @@ dnf5 -y install v2ray-geoip v2ray-domain-list-community xray
 dnf5 -y install v2raya
 wget -O /usr/bin/v2raya_core https://github.com/v2rayA/v2rayA/releases/download/v2.5.10/v2raya_core_linux_x64_2.5.10
 chmod +x /usr/bin/v2raya_core
+ln -sf /usr/share/v2ray /usr/share/v2raya
+ln -sf /usr/share/v2ray /usr/local/share/v2raya
 
 dnf5 -y copr enable bieszczaders/kernel-cachyos-lto
 dnf5 -y copr enable bieszczaders/kernel-cachyos-addons
@@ -61,4 +63,4 @@ systemctl enable bpftune
 systemctl enable AmneziaVPN
 systemctl enable v2raya
 
-# zapret2, add proper comments to everything
+# add zapret2, add proper comments to everything
