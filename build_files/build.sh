@@ -25,7 +25,8 @@ dnf5 -y install brave-origin
 dnf5 -y install torbrowser-launcher
 
 dnf5 -y copr enable cubewhy/jetbrains
-dnf5 -y install tealdeer fastfetch micro zed jetbrains-pycharm gh git desktop-plus-bin gnome-boxes lact obs-studio mediawriter
+dnf5 -y install tealdeer fastfetch micro zed gh git desktop-plus-bin gnome-boxes lact obs-studio mediawriter
+dnf5 -y install jetbrains-pycharm jetbrains-clion jetbrains-rustrover
 
 dnf5 -y install bpftune
 
