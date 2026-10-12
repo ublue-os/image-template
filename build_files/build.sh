@@ -52,8 +52,6 @@ mkdir -p /usr/share
 ln -sf /usr/share/v2ray /usr/share/v2raya
 # ln -sf /usr/share/v2ray /usr/local/share/v2raya # /usr/local is actually /var/usrlocal
 
-dnf5 -y install "https://github.com/clash-verge-rev/clash-verge-rev/releases/download/v2.5.8/Clash.Verge-2.5.8-1.x86_64.rpm"
-
 dnf5 -y copr enable bieszczaders/kernel-cachyos-lto
 dnf5 -y copr enable bieszczaders/kernel-cachyos-addons
 dnf5 -y swap zram-generator-defaults cachyos-settings
