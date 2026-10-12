@@ -11,6 +11,13 @@
       "automerge": true,
       "matchUpdateTypes": ["pin", "pinDigest"]
     },
+    // This prevents the default demo image used in ublue-os/image-template
+    // from being pinned as it serves no purpose there
+    {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/ublue-os/bazzite"],
+      "pinDigests": false
+    },
     {
       "enabled": false,
       "matchUpdateTypes": ["digest", "pinDigest", "pin"],
