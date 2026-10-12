@@ -55,6 +55,8 @@ dnf5 -y copr enable bieszczaders/kernel-cachyos-lto
 dnf5 -y copr enable bieszczaders/kernel-cachyos-addons
 dnf5 -y swap zram-generator-defaults cachyos-settings
 
+dnf5 -y install jetbrains-mono-fonts papirus-icon-theme
+
 dnf5 -y remove firefox
 dnf5 -y autoremove
 
