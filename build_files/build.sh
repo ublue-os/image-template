@@ -61,7 +61,6 @@ dnf5 -y install jetbrains-mono-fonts papirus-icon-theme
 dnf5 -y remove firefox
 dnf5 -y autoremove
 
-systemctl enable podman
 systemctl enable cosmic-greeter
 systemctl enable lactd
 systemctl enable bpftune
