@@ -30,7 +30,7 @@ dnf5 -y install jetbrains-pycharm jetbrains-clion jetbrains-rustrover
 
 dnf5 -y install bpftune
 
-# dnf5 -y install steam faugus-launcher heroic-games-launcher protonplus
+# dnf5 -y install steam faugus-launcher heroic-games-launcher protonplus mangohud
 # dnf5 -y install "https://github.com/hydralauncher/hydra/releases/download/v4.1.6/hydralauncher-4.1.6.x86_64.rpm"
 dnf5 -y install discord-openasar
 
