@@ -85,6 +85,7 @@ jobs:
             ghostty     ghostty https://download.copr.fedorainfracloud.org/results/scottames/ghostty/fedora-$releasever-x86_64/
             1password     1password     https://downloads.1password.com/linux/rpm/stable/$basearch
             1password-cli 1password-cli https://downloads.1password.com/linux/rpm/stable/$basearch
+            claude-desktop-unofficial claude-desktop https://pkg.claude-desktop-debian.dev/rpm/$basearch
           # Rebuild at least every 3 days even if the base has not moved, so
           # floating package repos (Firefox, 1Password, vscode, terra, COPRs)
           # do not go stale.
