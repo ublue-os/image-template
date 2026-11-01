@@ -43,6 +43,14 @@ dnf5 config-manager addrepo --id=claude-code \
   --set=gpgkey=https://downloads.claude.ai/keys/claude-code.asc \
   --set=gpgcheck=1
 
+# https://github.com/aaddrick/claude-desktop-debian#using-dnf-repository-fedorarhel---recommended
+# shellcheck disable=SC2016 # $basearch is dnf's variable, not the shell's
+dnf5 config-manager addrepo --id=claude-desktop-unofficial \
+  --set=name="Claude Desktop (unofficial packaging)" \
+  --set=baseurl='https://pkg.claude-desktop-debian.dev/rpm/$basearch' \
+  --set=gpgkey=https://pkg.claude-desktop-debian.dev/KEY.gpg \
+  --set=gpgcheck=1 --set=repo_gpgcheck=1
+
 DESKTOP_PACKAGES=(
     # I'd prefer non-flatpak browser so I can do 1password desktop integration easier
     firefox
@@ -54,8 +62,9 @@ DESKTOP_PACKAGES=(
     # terminal
     ghostty
 
-    # LLM CLI
+    # LLM CLI + desktop app
     claude-code
+    claude-desktop-unofficial
 
     # GUI apps pulled off Flathub: thin RPMs over Qt/KDE/GTK libs already in the image
     calibre
