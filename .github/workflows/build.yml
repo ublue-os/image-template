@@ -361,13 +361,26 @@ jobs:
       # unseeded it works but shares fewer layers between builds. chunkah is
       # what upstream recommends instead. Runs as root like the build, since
       # the image lives in root's podman storage.
+      #
+      # Healthy chunkah runs take 5-11m. The step dying at 45-54m with no logs
+      # means the runner itself was lost, so a tighter cap fails a stuck run
+      # while the runner can still upload logs.
       - name: Rechunk with Chunkah
         id: rechunk
-        timeout-minutes: 70
+        timeout-minutes: 30
         run: |
           sudo -E "$(command -v just)" rechunk \
             "${IMAGE_NAME}" \
             "${DEFAULT_TAG}"
+
+      # Only useful if the runner survives the failure (e.g. a timeout above).
+      - name: Show runner resources on failure
+        if: failure()
+        timeout-minutes: 5
+        run: |
+          free -h
+          df -h
+          sudo dmesg | grep -iE 'out of memory|oom-kill|killed process' || true
 
       - name: Generate Build Tags
         id: gen-build-tags
