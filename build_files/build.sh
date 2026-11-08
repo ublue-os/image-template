@@ -101,6 +101,8 @@ case "${BUILD_VARIANT}" in
             /usr/libexec/plasmalogin-helper
             /usr/libexec/plasma-login-greeter
             /usr/bin/startplasma-login-wayland
+            /usr/bin/plasma-discover
+            /usr/lib64/qt6/plugins/discover/kns-backend.so
         )
         ;;
 esac
