@@ -77,6 +77,13 @@ DESKTOP_PACKAGES=(
     mediawriter
     rssguard
     vlc
+
+    # Discover, for KDE Store add-on updates only (discover-kns-update.timer).
+    # No flatpak/rpm-ostree/packagekit backends: Bazaar, bootc and Puppet own
+    # those. The notifier is skipped too: kns has no notifier plugin, so
+    # Discover's own "update automatically" never fires for add-ons.
+    plasma-discover
+    plasma-discover-kns
 )
 
 DESKTOP_TERRA_PACKAGES=(
@@ -181,6 +188,7 @@ dnf -y install --skip-unavailable --enable-repo=terra \
     "${DESKTOP_TERRA_PACKAGES[@]}" "${DESKTOP_TERRA_PACKAGES_OPTIONAL[@]}"
 
 systemctl enable "${DESKTOP_SYSTEMCTL[@]}"
+systemctl --global enable discover-kns-update.timer
 
 # steamdeck-dsp's handheld audio profiles. They copy into /usr/local, which
 # the Containerfile makes read-only, so they fail every boot; and no profile

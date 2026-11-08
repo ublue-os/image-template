@@ -1,0 +1,13 @@
+[Unit]
+Description=Update KDE Store add-ons (widgets, KWin scripts, themes)
+ConditionPathExists=/usr/lib64/qt6/plugins/discover/kns-backend.so
+
+[Service]
+Type=oneshot
+# Only the KNewStuff backend: OS images, Flatpaks and firmware have their own
+# updaters (bootc/Puppet, ublue flatpak timer, fwupd), and Discover's bundled
+# fwupd backend would otherwise come along.
+Environment=QT_QPA_PLATFORM=offscreen
+ExecStart=/usr/bin/plasma-discover --backends kns-backend --headless-update
+TimeoutStartSec=30min
+Nice=10
