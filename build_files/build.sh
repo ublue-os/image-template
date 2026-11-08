@@ -160,14 +160,14 @@ verify_libs_resolve "${LINK_CHECK[@]}" "${LINK_CHECK_VARIANT[@]}"
 # group is no privilege change, the kernel leaves AT_SECURE unset, and
 # BrowserSupport aborts ("running without libc's security"): the browser
 # extension shows "Connection problem". Pin the GIDs and re-own the files.
-# 900-902: system range (a setgid binary on a user-range GID would hand out
-# that user's group) and clear of the base image, which allocates downward
-# from 999 and already reaches 951. Hosts whose /etc/group predates this keep
-# their old numbers (systemd-sysusers never renumbers), so each existing host
-# needs `groupmod -g` once to match.
+# 1500-1502: the desktop app rejects a helper whose setgid group is below 1000
+# ("invalid group attempted to connect", then PipeAuthError(NoCreds)), so the
+# system range is out; 1500+ stays clear of the GIDs useradd hands out from 1000.
+# Hosts whose /etc/group predates this keep their old numbers (systemd-sysusers
+# never renumbers), so each existing host needs `groupmod -g` once to match.
 # `docker` is flagged too but comes from the bazzite-dx base -- pinning a GID we
 # do not own would fight upstream if they ever change it.
-declare -A OP_GIDS=([onepassword]=900 [onepassword-mcp]=901 [onepassword-cli]=902)
+declare -A OP_GIDS=([onepassword]=1500 [onepassword-mcp]=1501 [onepassword-cli]=1502)
 : >/usr/lib/sysusers.d/freizzite-1password.conf
 for group in onepassword onepassword-mcp onepassword-cli; do
     old_gid="$(getent group "${group}" | cut -d: -f3)" || continue
