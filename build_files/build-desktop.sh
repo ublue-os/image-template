@@ -84,6 +84,9 @@ DESKTOP_PACKAGES=(
     # Discover's own "update automatically" never fires for add-ons.
     plasma-discover
     plasma-discover-kns
+
+    # host python3 modules for ~/Code/personal-brief scripts
+    python3-websockets
 )
 
 DESKTOP_TERRA_PACKAGES=(
