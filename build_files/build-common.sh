@@ -90,7 +90,7 @@ if [ "${openvox_status}" = "404" ]; then
     sed -i "s/[$]releasever/$((openvox_release - 1))/g" /etc/yum.repos.d/openvox.repo
 fi
 
-dnf5 -y install --enable-repo=openvox9 openvox-agent
+dnf5 -y install --enable-repo=openvox* openvox-agent
 
 # vardir defaults to /opt/puppetlabs/puppet/cache, read-only at runtime on
 # bootc. server=localhost because OpenVox 9 raises ArgumentError when run as

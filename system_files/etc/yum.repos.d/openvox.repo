@@ -12,3 +12,13 @@ enabled=0
 gpgcheck=1
 repo_gpgcheck=0
 gpgkey=https://yum.voxpupuli.org/GPG-KEY-openvox.pub
+
+[openvox9-f44]
+name=OpenVox 9 F44
+baseurl=https://yum.voxpupuli.org/openvox9/fedora/44/$basearch
+# enabled=0: the image ships the agent; host dnf and bootc-image-builder
+# depsolve have no business here. The build enables it explicitly.
+enabled=0
+gpgcheck=1
+repo_gpgcheck=0
+gpgkey=https://yum.voxpupuli.org/GPG-KEY-openvox.pub
